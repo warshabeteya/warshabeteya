@@ -363,6 +363,9 @@
     if (event.target.id === 'phone') show('phoneError',false);
     saveCurrent(); renderQuote(); invalidatePrepared();
   });
+  $('moddingOptIn').addEventListener('change',() => {
+    show('moddingError',$('moddingOptIn').required && !$('moddingOptIn').checked);
+  });
   form.addEventListener('change',invalidatePrepared);
   document.querySelectorAll('input[type="text"],input[type="tel"],textarea').forEach(field => field.addEventListener('blur',() => {
     field.value = Q.displayText(field.value);
@@ -379,6 +382,18 @@
       const field = issue.field === 'linuxModeBox' ? document.querySelector('[name="linuxMode"]') : $(issue.field);
       field.setAttribute('aria-invalid','true'); const target=focusControl(field); scrollToNode(target); return false;
     }
+    // Bring the required modification consent into view before contact validation.
+    const missingModdingConsent = $('moddingOptIn').required && !$('moddingOptIn').checked;
+    show('moddingError',missingModdingConsent);
+    if (missingModdingConsent) {
+      const checkbox = $('moddingOptIn');
+      checkbox.setAttribute('aria-invalid','true');
+      $('formError').textContent = $('moddingError').textContent;
+      show('formError',true);
+      checkbox.closest('.modding-confirm').scrollIntoView({behavior:'instant',block:'center'});
+      checkbox.focus({preventScroll:true});
+      return false;
+    }
     $('name').setCustomValidity($('name').value.trim() ? '' : 'اكتب اسمك.');
     $('phone').value = Q.normalizePhone($('phone').value);
     $('phone').setCustomValidity(Q.validPhone($('phone').value) ? '' : 'اكتب رقم موبايل مصري صحيح.');
@@ -388,7 +403,7 @@
     show('moddingError',$('moddingOptIn').required && !$('moddingOptIn').checked);
     if (!invalid) { show('formError',false); return true; }
     const label = invalid.labels?.[0]?.textContent.replace(/\s+/g,' ').trim() || 'البيانات المطلوبة';
-    $('formError').textContent = 'راجع الحقل: ' + label; show('formError',true); focusControl(invalid); if(invalid.tagName!=='SELECT') invalid.reportValidity(); return false;
+    $('formError').textContent = 'راجع الحقل: ' + label; show('formError',true); scrollToNode(focusControl(invalid)); if(invalid.tagName!=='SELECT') invalid.reportValidity(); return false;
   }
   form.addEventListener('submit',event => {
     event.preventDefault(); saveCurrent(); refresh(); if (!validate()) return;
