@@ -379,8 +379,12 @@
     const customer = {name:$('name').value,phone:$('phone').value};
     const signature = JSON.stringify({items:items.map(({uid,category,...data}) => data),customer,total:order.total,offer:order.offer?.id});
     if (signature !== lastSignature) {
-      const random = new Uint32Array(2); crypto.getRandomValues(random);
-      lastReference = 'WB-' + Q.cairoDate().replace(/-/g,'') + '-' + [...random].map(n => n.toString(36).toUpperCase()).join(''); lastSignature = signature;
+      // Six uniform random characters. Avoid easily confused 0, 1, I and O.
+      // A shared sequential counter requires a backend; this reference is local.
+      const alphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+      const random = new Uint8Array(6); crypto.getRandomValues(random);
+      const suffix = [...random].map(n => alphabet[n & 31]).join('');
+      lastReference = 'WB-' + Q.cairoDate().replace(/-/g,'') + '-' + suffix; lastSignature = signature;
     }
     lastMessage = Q.orderMessage(items,customer,order,lastReference);
     $('orderRef').textContent = lastReference; $('messagePreview').textContent = lastMessage;
