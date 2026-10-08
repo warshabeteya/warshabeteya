@@ -4,7 +4,7 @@
   const D = window.WarshaData, Q = window.WarshaQuote;
   const $ = id => document.getElementById(id);
   const form = $('requestForm'), money = Q.formatMoney;
-  let nextUid = 1, extraSequence = 0, lastMessage = '', lastSignature = '', lastReference = '', campaignDate = '';
+  let nextUid = 1, extraSequence = 0, lastMessage = '', lastSignature = '', lastReference = '', campaignDate = '', lastModdingSignature = '';
   const blank = () => ({uid:nextUid++,device:'',main:'',extras:[],distro:'',mode:'',backup:false,model:'',firmware:'',notes:'',extraRequest:'',category:''});
   const items = [blank()];
   let state = items[0];
@@ -202,9 +202,26 @@
     show('linuxBitlockerHint',state.mode !== 'wipe');
   }
   function refresh() { refreshServices(); refreshLinux(); renderQuote(); }
+  function moddingScope(entries) {
+    const ps = new Set(['ps1','ps2','ps3','ps4','psp','vita']);
+    return {
+      playstation: entries.some(({state:item,quote}) => quote?.requiresModding && ps.has(item.device)),
+      mac: entries.some(({state:item,quote}) => quote?.requiresModding && item.device === 'mac-intel' && [item.main,...item.extras].some(id => id === 'oclp' || id === 'oclp_full'))
+    };
+  }
   function renderQuote() {
     const order = Q.calculateOrder(items,$('applyPromos').checked);
     renderDeviceList(order);
+    const scope = moddingScope(order.entries);
+    const moddingSignature = JSON.stringify(order.entries.filter(e => e.quote?.requiresModding).map(({state:item}) => [item.uid,item.device,[item.main,...item.extras].filter(id => D.moddingServices.has(id)).sort()]));
+    if (moddingSignature !== lastModdingSignature) $('moddingOptIn').checked = false;
+    lastModdingSignature = moddingSignature;
+    $('playstationModdingWarning').hidden = !scope.playstation;
+    $('playstationOnlineTerm').hidden = !scope.playstation;
+    $('macModdingWarning').hidden = !scope.mac;
+    $('macPerformanceNote').hidden = !scope.mac;
+    $('macUpdateTerm').hidden = !scope.mac;
+    $('otherModdingWarning').hidden = !order.requiresModding || scope.playstation || scope.mac;
     show('moddingSection',order.requiresModding); $('moddingOptIn').required = order.requiresModding; $('moddingOptIn').disabled = !order.requiresModding;
     if (!order.requiresModding) $('moddingOptIn').checked = false;
     const hasQuote = order.entries.some(e => e.quote);
@@ -379,8 +396,6 @@
     const customer = {name:$('name').value,phone:$('phone').value};
     const signature = JSON.stringify({items:items.map(({uid,category,...data}) => data),customer,total:order.total,offer:order.offer?.id});
     if (signature !== lastSignature) {
-      // Six uniform random characters. Avoid easily confused 0, 1, I and O.
-      // A shared sequential counter requires a backend; this reference is local.
       const alphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
       const random = new Uint8Array(6); crypto.getRandomValues(random);
       const suffix = [...random].map(n => alphabet[n & 31]).join('');

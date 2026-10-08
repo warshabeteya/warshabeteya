@@ -5,16 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#142e45">
   <meta name="description" content="ورشة بيتية – صيانة أجهزة PlayStation، أيادي التحكم، أجهزة MacBook، وأجهزة الكمبيوتر. ورشة من المنزل في القاهرة. اعرف السعر التقريبي ونسّق الاستلام على واتساب.">
-  <link rel="canonical" href="https://warshabeteya.github.io/">
+  <link rel="canonical" href="https://warshabeteya.github.io/warshabeteya/">
 
   <!-- Open Graph / WhatsApp / Facebook link previews -->
   <meta property="og:type" content="website">
   <meta property="og:locale" content="ar_EG">
-  <meta property="og:url" content="https://warshabeteya.github.io/">
+  <meta property="og:url" content="https://warshabeteya.github.io/warshabeteya/">
   <meta property="og:site_name" content="ورشة بيتية">
   <meta property="og:title" content="ورشة بيتية | صيانة PlayStation و MacBook في القاهرة">
   <meta property="og:description" content="صيانة أجهزة PlayStation، أيادي التحكم، أجهزة MacBook، وأجهزة الكمبيوتر. ورشة من المنزل في القاهرة. اعرف السعر التقريبي ونسّق الاستلام على واتساب.">
-  <meta property="og:image" content="https://warshabeteya.github.io/og-image.png">
+  <meta property="og:image" content="https://warshabeteya.github.io/warshabeteya/og-image.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="شعار ورشة بيتية">
@@ -23,7 +23,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="ورشة بيتية | صيانة PlayStation و MacBook في القاهرة">
   <meta name="twitter:description" content="صيانة أجهزة PlayStation، أيادي التحكم، أجهزة MacBook، وأجهزة الكمبيوتر. ورشة من المنزل في القاهرة.">
-  <meta name="twitter:image" content="https://warshabeteya.github.io/og-image.png">
+  <meta name="twitter:image" content="https://warshabeteya.github.io/warshabeteya/og-image.png">
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -44,8 +44,8 @@
     "@type": "LocalBusiness",
     "name": "ورشة بيتية",
     "alternateName": "Warsha Beteya",
-    "url": "https://warshabeteya.github.io/",
-    "image": "https://warshabeteya.github.io/og-image.png",
+    "url": "https://warshabeteya.github.io/warshabeteya/",
+    "image": "https://warshabeteya.github.io/warshabeteya/og-image.png",
     "telephone": "+201277048080",
     "description": "صيانة أجهزة PlayStation، أيادي التحكم، أجهزة MacBook، وأجهزة الكمبيوتر. ورشة من المنزل في القاهرة، الطلب مباشرة عبر واتساب.",
     "areaServed": { "@type": "City", "name": "القاهرة" },
@@ -86,7 +86,7 @@
   <script defer src="promos.js?v=20261008-address"></script>
   <script defer src="quote.js?v=20261008-address"></script>
   <script defer src="picker.js?v=20261008-address"></script>
-  <script defer src="app.js?v=20261008-address"></script>
+  <script defer src="app.js?v=20261008-service-warnings"></script>
 </head>
 <body>
 <a class="skip-link" href="#requestForm">انتقل لحساب السعر</a>
@@ -237,13 +237,15 @@
 
           <div class="modding-warning">
             <strong>⚠️ تنبيه مهم:</strong><br>
-            خدمات التعديل قد تلغي الضمان الرسمي، وقد تخالف شروط استخدام المنصة (مثل شبكة PlayStation).<br>
+            <p id="playstationModdingWarning" hidden>خدمات التعديل قد تلغي الضمان الرسمي، وقد تخالف شروط استخدام المنصة (مثل شبكة PlayStation).</p>
+            <p id="macModdingWarning" hidden>بالنسبة لأجهزة MacBook Intel، خدمات التعديل باستخدام OCLP قد تلغي الضمان الرسمي. تثبيت إصدار macOS غير مدعوم رسميًا للجهاز قد يؤثر على الأداء وتوافق بعض البرامج والخصائص، وقد يتطلب تعديل بعض إعدادات حماية النظام. تحديثات macOS اللاحقة قد تحتاج إعادة تطبيق التعديلات أو تسبب مشاكل في التشغيل؛ لذلك يُرجى مراجعتنا قبل تحديث النظام، والاحتفاظ بنسخة احتياطية من البيانات المهمة.</p>
+            <p id="otherModdingWarning" hidden>خدمات التعديل قد تلغي الضمان الرسمي وقد تؤثر على الأداء والتوافق.</p>
             هذه الخدمات مخصصة للاستخدام الشخصي مع الألعاب والبرامج اللي تملكها بشكل قانوني فقط.<br>
             لازم توافق صراحة على البنود دي قبل المتابعة.
             <br><br>
             <strong>📌 ملاحظة الأداء:</strong> بعد التعديل، قد تلاحظ فرق في الأداء عن النظام الأصلي. أمثلة:
             <ul class="modding-list">
-              <li>أجهزة Mac مع أنظمة أحدث قد تكون أبطأ قليلاً من النظام الأصلي.</li>
+              <li id="macPerformanceNote" hidden>أجهزة Mac مع أنظمة أحدث قد تكون أبطأ قليلاً من النظام الأصلي.</li>
               <li>بعض الألعاب أو التطبيقات قد تعمل بأداء مختلف عن المتوقع.</li>
               <li>قد تظهر مشاكل توافق مع بعض البرامج أو الخصائص.</li>
             </ul>
@@ -261,7 +263,9 @@
             <strong>بموافقتي، أقر بالآتي:</strong>
             <ul>
               <li>الجهاز ملكي وأنا المسؤول الوحيد عنه.</li>
-              <li>أفهم أن التعديل قد يلغي الضمان وقد يسبب حظر الجهاز من الخدمات أونلاين.</li>
+              <li>أفهم أن خدمات التعديل قد تلغي الضمان الرسمي.</li>
+              <li id="playstationOnlineTerm" hidden>أفهم أن تعديل أجهزة PlayStation قد يسبب حظر الجهاز من الخدمات أونلاين.</li>
+              <li id="macUpdateTerm" hidden>أفهم أن تثبيت macOS باستخدام OCLP على جهاز غير مدعوم رسميًا قد يؤثر على الأداء والتوافق وبعض إعدادات الحماية، وقد يتطلب إعادة تطبيق التعديلات بعد التحديث.</li>
               <li>ألتزم باستخدام الجهاز المعدّل للأغراض الشخصية والقانونية فقط.</li>
               <li>مقدّم الخدمة لا يوفّر ألعاباً مقرصنة ولا يساعد في أي استخدام غير قانوني.</li>
               <li>أتحمل المسؤولية الكاملة عن أي عواقب قانونية أو فنية ناتجة عن التعديل، <strong>بما في ذلك أي فرق في الأداء</strong>.</li>
@@ -360,7 +364,7 @@
     <li><span>3</span><h3>نفحص ونوثّق</h3><p>نصوّر حالة الجهاز ونأكد أي تغيير في السعر قبل الشغل.</p></li>
     <li><span>4</span><h3>نصلّح ونسلّم</h3><p>نتواصل معاك لما الخدمة تخلص لتأكيد التسليم وباقي المبلغ.</p></li>
   </ol></section>
-  <section id="facebookCommunity" class="community panel" aria-labelledby="facebookHeading"><div><p class="eyebrow">خلّينا على تواصل</p><h2 id="facebookHeading">جاي من فيسبوك؟ أهلًا بيك.</h2><p>هنا تختار خدماتك وتشوف السعر. وعلى صفحتنا على فيسبوك تقدر تتابع المنشورات والعروض وتبعت استفسارك.</p></div><div class="community-actions"><a class="button button-facebook" data-facebook href="https://www.facebook.com/profile.php?id=61593335382482" target="_blank" rel="noopener noreferrer">زور صفحة ورشة بيتية على فيسبوك ↗</a><button type="button" id="copySiteLink" class="button button-outline">انسخ رابط الموقع وشاركه</button><p id="siteCopyStatus" class="hint" role="status" aria-live="polite"></p><a id="siteLinkFallback" class="hidden" href="https://warshabeteya.github.io/" dir="ltr">warshabeteya.github.io/</a></div></section>
+  <section id="facebookCommunity" class="community panel" aria-labelledby="facebookHeading"><div><p class="eyebrow">خلّينا على تواصل</p><h2 id="facebookHeading">جاي من فيسبوك؟ أهلًا بيك.</h2><p>هنا تختار خدماتك وتشوف السعر. وعلى صفحتنا على فيسبوك تقدر تتابع المنشورات والعروض وتبعت استفسارك.</p></div><div class="community-actions"><a class="button button-facebook" data-facebook href="https://www.facebook.com/profile.php?id=61593335382482" target="_blank" rel="noopener noreferrer">زور صفحة ورشة بيتية على فيسبوك ↗</a><button type="button" id="copySiteLink" class="button button-outline">انسخ رابط الموقع وشاركه</button><p id="siteCopyStatus" class="hint" role="status" aria-live="polite"></p><a id="siteLinkFallback" class="hidden" href="https://warshabeteya.github.io/warshabeteya/" dir="ltr">warshabeteya.github.io/</a></div></section>
   <div class="bottom-grid">  <section class="faq panel" aria-labelledby="faqHeading">
     <h2 class="section-heading" id="faqHeading">حابب تطمّن على حاجة؟</h2>
 

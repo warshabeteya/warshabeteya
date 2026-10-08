@@ -10,7 +10,7 @@
   const CONFIG = Object.freeze({
     name: 'ورشة بيتية', whatsapp: '201277048080', inspectionFee: 150,
     linuxDualBootFee: 150, timezone: 'Africa/Cairo',
-    siteUrl: 'https://warshabeteya.github.io/',
+    siteUrl: 'https://warshabeteya.github.io/warshabeteya/',
     facebook: 'https://www.facebook.com/profile.php?id=61593335382482',
     analyticsId: 'G-90SYVXP2KQ'
   });
