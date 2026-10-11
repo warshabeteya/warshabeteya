@@ -87,12 +87,15 @@
   <script defer src="quote.js?v=20261008-address"></script>
   <script defer src="picker.js?v=20261008-address"></script>
   <script defer src="app.js?v=20261008-consent-focus"></script>
+<link rel="stylesheet" href="inquiry.css">
+<script defer src="demonstrations.js"></script>
+<script defer src="inquiry.js"></script>
 </head>
 <body>
 <a class="skip-link" href="#requestForm">انتقل لحساب السعر</a>
 <header class="site-header shell">
   <a class="wordmark" href="#top" aria-label="ورشة بيتية — الرئيسية"><img src="logo.webp" width="48" height="52" alt=""><span>ورشة بيتية<small>PlayStation · MacBook · PC</small></span></a>
-  <nav aria-label="التنقل الرئيسي"><a href="#requestForm">ابدأ طلبك</a><a href="#howItWorks">طريقة العمل</a><a href="#faqHeading">أسئلة شائعة</a><a data-facebook href="https://www.facebook.com/profile.php?id=61593335382482" target="_blank" rel="noopener noreferrer">صفحتنا على فيسبوك ↗</a></nav>
+  <nav aria-label="التنقل الرئيسي"><a href="#quickInquiry">احكيلنا المشكلة</a><a href="#workGallery">قبل وبعد</a><a href="#faqHeading">أسئلة شائعة</a><a data-facebook href="https://www.facebook.com/profile.php?id=61593335382482" target="_blank" rel="noopener noreferrer">صفحتنا على فيسبوك ↗</a></nav>
   <a class="header-contact" data-whatsapp href="https://wa.me/201277048080" target="_blank" rel="noopener noreferrer">تواصل معنا <span aria-hidden="true">↗</span></a>
 </header>
 <main id="top" class="shell">
@@ -100,7 +103,7 @@
     <div class="hero-copy"><p class="eyebrow">ورشة بيتية · القاهرة</p>
       <h1 id="heroHeading">جهازك محتاج عناية؟<br><span>نبدأ بخطوة بسيطة.</span></h1>
       <p class="hero-tagline">للعب، للشغل، وللأجهزة اللي بتهمّك. صيانة وتنظيف لأجهزة <bdi>PlayStation</bdi> وأيدي التحكم و <bdi>MacBook</bdi> والكمبيوتر. اختار جهازك وشوف تكلفة الخدمة، أو احكيلنا المشكلة ونساعدك تختار.</p>
-      <div class="hero-actions"><a class="button button-primary hero-cta" href="#requestForm">شوف السعر وابدأ طلبك <span aria-hidden="true">←</span></a><a class="button button-outline" data-whatsapp href="https://wa.me/201277048080" target="_blank" rel="noopener noreferrer">محتار؟ خلّينا نساعدك</a></div>
+      <div class="hero-actions"><a class="button button-primary hero-cta" href="#quickInquiry">احكيلنا المشكلة <span aria-hidden="true">←</span></a><a class="button button-outline" href="#requestForm">عارف الخدمة؟ احسب سعرها</a></div>
       <p class="hero-note">ورشة من المنزل في القاهرة. مكان وميعاد الاستلام والتسليم بالاتفاق.</p>
     </div>
     <div class="hero-visual" aria-label="عناية بجهازك، خطوة بخطوة">
@@ -111,6 +114,22 @@
     </div>
   </section>
   <div class="trust-strip" aria-label="مميزات الخدمة"><span><b>01</b> توثيق حالة الجهاز بالصور</span><span><b>02</b> تأكيد السعر قبل الشغل</span><span><b>03</b> دفع على مرحلتين</span></div>
+
+<section id="quickInquiry" class="inquiry-panel" aria-labelledby="inquiryHeading">
+ <div><p class="eyebrow">مش لازم تعرف اسم العطل</p><h2 id="inquiryHeading">احكيلنا جهازك بيعمل إيه.</h2><p>اختار الجهاز والمشكلة، وهنجهّز رسالة تبعتها على واتساب. بنراجع التفاصيل معاك قبل الاتفاق على الفحص أو الصيانة.</p><ol class="inquiry-steps"><li>اختار الجهاز</li><li>وصف بسيط للمشكلة</li><li>راجع الرسالة وابعتها</li></ol><p class="hint">ده استفسار مبدئي، مش تشخيص أو حجز مؤكد. السعر والميعاد بيتأكدوا بعد المراجعة.</p></div>
+ <form id="inquiryForm">
+ <label for="inqDevice">الجهاز *</label><select data-native id="inqDevice" required><option value="">اختار الجهاز</option></select>
+ <label for="inqSymptom">المشكلة الأقرب *</label><select data-native id="inqSymptom" required disabled><option value="">اختار الجهاز الأول</option></select>
+ <p id="inqGuidance" class="inquiry-guidance" role="status">ابدأ باختيار جهازك.</p>
+ <label for="inqModel">الموديل أو سنة الصنع (اختياري)</label><input id="inqModel" maxlength="100" placeholder="مثلاً PS4 Slim أو MacBook 2012">
+ <label for="inqNotes">تفاصيل إضافية (اختياري)</label><textarea id="inqNotes" rows="3" maxlength="800" placeholder="المشكلة بدأت إمتى؟ بتحصل طول الوقت؟"></textarea>
+ <label for="inqSource">عرفتنا منين؟ (اختياري)</label><select data-native id="inqSource"><option value="غير محدد">اختار المصدر</option><option>فيسبوك</option><option>ترشيح من صديق</option><option>بحث Google</option><option>غير كده</option></select>
+ <button class="button button-primary" type="submit">جهّز رسالة واتساب ←</button><p class="hint">البيانات مش بتتسجل في الموقع. الرسالة بتوصّلنا لما تبعتها بنفسك على واتساب.</p>
+ <div id="inqResult" hidden tabindex="-1"><h3>رسالتك جاهزة للمراجعة</h3><pre id="inqMessage"></pre><a id="inqSend" class="button button-primary" target="_blank" rel="noopener noreferrer">افتح واتساب للإرسال ↗</a><p class="hint">لو حابب تبعت صورة أو فيديو للمشكلة، ضيفهم جوّه محادثة واتساب.</p></div>
+ </form>
+</section>
+<section id="workGallery" class="inquiry-gallery" hidden aria-labelledby="galleryHeading"><p class="eyebrow">من على ترابيزة الشغل</p><h2 id="galleryHeading">تجارب موثّقة، خطوة بخطوة.</h2><div id="demoCards" class="demo-grid"></div></section>
+
   <div id="promoBannerSlot"></div>
   <section class="booking-section" aria-labelledby="bookingHeading">
     <div class="section-intro"><p class="eyebrow">نبدأ بجهازك</p><h2 id="bookingHeading">احسب تكلفة الصيانة.</h2><p>3 خطوات: جهازك، خدمته، وبعدين بيانات التواصل. عندك جهاز ويد تحكم؟ ضيف كل واحد لوحده في نفس الطلب.</p></div>

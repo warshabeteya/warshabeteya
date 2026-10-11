@@ -114,7 +114,7 @@
   document.addEventListener('pointerdown',event=>{if(opened&&!opened.wrapper.contains(event.target))close();});
   document.addEventListener('focusin',event=>{if(opened&&!opened.wrapper.contains(event.target))close();});
   window.WarshaPicker={
-    sync(root=document){if(opened&&!opened.select.isConnected)close();root.querySelectorAll('select').forEach(select=>syncOne(enhance(select)));},
+    sync(root=document){if(opened&&!opened.select.isConnected)close();root.querySelectorAll('select:not([data-native])').forEach(select=>syncOne(enhance(select)));},
     focus(select){const w=widgets.get(select);if(w){syncOne(w);w.button.focus({preventScroll:true});return w.button;}select.focus({preventScroll:true});return select;},
     close
   };
