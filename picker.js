@@ -18,6 +18,10 @@
     node.replaceChildren();
     const data=parts(option), label=document.createElement('span');
     label.className='choice-name'; label.textContent=WarshaQuote.bidiText(data.label);
+    if (node.classList.contains('choice-option') && option?.value && (option.parentElement.id === 'mainService' || option.parentElement.classList.contains('additional-service'))) {
+      const description = WarshaData.serviceDescriptions[option.value];
+      if (description) { const hint = document.createElement('small'); hint.className='choice-description'; hint.textContent=description; label.append(hint); }
+    }
     node.append(label);
     if (data.price !== undefined) {
       const price=document.createElement('bdi'); price.className='choice-price'; price.dir='rtl';
@@ -105,6 +109,7 @@
         if(option.disabled)row.setAttribute('aria-disabled','true'); content(row,option); list.append(row);
       });
     }
+    if(select.getAttribute('aria-describedby')) button.setAttribute('aria-describedby',select.getAttribute('aria-describedby'));
     button.disabled=select.disabled; button.setAttribute('aria-required',String(select.required));
     button.setAttribute('aria-invalid',select.getAttribute('aria-invalid')||'false');
     content(button,select.selectedOptions[0]); button.classList.toggle('is-placeholder',!select.value);

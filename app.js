@@ -7,7 +7,60 @@
   let nextUid = 1, extraSequence = 0, lastMessage = '', lastSignature = '', lastReference = '', campaignDate = '', lastModdingSignature = '';
   const blank = () => ({uid:nextUid++,device:'',main:'',extras:[],distro:'',mode:'',backup:false,model:'',firmware:'',notes:'',extraRequest:'',category:''});
   const items = [blank()];
-  let state = items[0];
+  let state = items[0], journeyStep = 1, removedDevice = null, pendingDraft = null, storageAvailable = true;
+  const Draft = window.WarshaDraft;
+  try { pendingDraft = Draft.decode(localStorage.getItem(Draft.key)); } catch (_) { storageAvailable = false; }
+  function persistDraft() {
+    if (pendingDraft) return;
+    const hasChoices = items.some(item => item.device || item.category);
+    $('clearDraft').hidden = !hasChoices;
+    try {
+      if (hasChoices) localStorage.setItem(Draft.key,Draft.encode(items,$('applyPromos').checked));
+      else localStorage.removeItem(Draft.key);
+      storageAvailable = true;
+    } catch (_) { storageAvailable = false; }
+    $('draftStatus').textContent = storageAvailable
+      ? (hasChoices ? 'اختيارات الجهاز والخدمات محفوظة هنا لمدة 7 أيام. بياناتك وملاحظاتك وموافقاتك مش محفوظة.' : 'اختيارات الجهاز والخدمات فقط بتتحفظ على المتصفح لمدة 7 أيام.')
+      : 'الحفظ على المتصفح غير متاح. احتفظ بنسخة من رسالتك قبل إغلاق الصفحة.';
+  }
+  function renderJourney() {
+    document.querySelector('.booking-layout').dataset.step = journeyStep;
+    $('deviceStage').hidden = journeyStep !== 1;
+    $('stepService').hidden = journeyStep !== 2;
+    $('checkout').hidden = journeyStep !== 3;
+    $('deviceManager').hidden = journeyStep === 3;
+    $('activeDeviceLabel').hidden = journeyStep === 3;
+    $('nextService').disabled = !state.device;
+    $('serviceDeviceName').textContent = Q.bidiText(D.devices.find(d => d[0] === state.device)?.[1] || 'اختار جهازك');
+    $('deviceEligibility').textContent = D.deviceGuidance(state.device);
+    $('deviceEligibility').hidden = !D.deviceGuidance(state.device);
+    $('quoteContinue').hidden = journeyStep === 3 || !$('total').textContent || $('total').textContent === '—';
+    const column = document.querySelector('.quote-column');
+    column.hidden = journeyStep === 1 || (window.matchMedia('(max-width: 760px)').matches && journeyStep !== 3);
+    $('mobileQuote').hidden = journeyStep === 3 || !Q.calculateOrder(items,false).entries.some(e => e.quote);
+    updateProgress();
+  }
+  function goStep(step, focus = true) {
+    window.WarshaPicker.close(); journeyStep = step; renderJourney();
+    const target = step === 1 ? $('deviceStage') : step === 2 ? $('stepService') : $('checkout');
+    if (focus) { scrollToNode(target); target.focus({preventScroll:true}); }
+  }
+  function validateDevices() {
+    saveCurrent();
+    const incomplete = items.find(item => Q.deviceIssue(item));
+    if (!incomplete) { show('formError',false); return true; }
+    state = incomplete; journeyStep = state.device ? 2 : 1; renderEditor();
+    const issue = Q.deviceIssue(state);
+    $('formError').textContent = 'الجهاز ' + (items.indexOf(state)+1) + ': ' + issue.text;
+    show('formError',true);
+    const field = issue.field === 'linuxModeBox' ? document.querySelector('[name="linuxMode"]') : $(issue.field);
+    field.setAttribute('aria-invalid','true'); field.setAttribute('aria-describedby','formError'); scrollToNode(focusControl(field)); return false;
+  }
+  function reviewOrder(event) { event?.preventDefault(); if (validateDevices()) goStep(3); }
+  function showUndo(item,index) {
+    removedDevice = {item,index,wasLast:items.length === 0}; $('undoRemoval').hidden = false;
+    $('undoText').textContent = 'اتحذف الجهاز من الطلب. تقدر ترجّعه قبل حذف جهاز تاني.';
+  }
   const element = (tag,text,className) => {
     const node = document.createElement(tag);
     if (text !== undefined) node.textContent = Q.bidiText(text);
@@ -60,19 +113,20 @@
     show('successBox',false); lastMessage = ''; $('messagePreview').textContent = ''; $('whatsappFallback').href = '#';
   }
   function newItem(focus = true) {
-    state = blank(); items.push(state);
+    state = blank(); items.push(state); journeyStep = 1;
     if (focus) { renderEditor(); invalidatePrepared(); scrollToNode(document.querySelector('.category-prompt')); focusDevice(); }
   }
   function switchItem(uid) {
-    saveCurrent(); state = items.find(item => item.uid === uid); renderEditor();
-    scrollToNode(document.querySelector('.category-prompt')); focusDevice();
+    saveCurrent(); state = items.find(item => item.uid === uid); journeyStep = state.device ? 2 : 1; renderEditor();
+    goStep(journeyStep);
   }
   function removeItem(uid) {
-    if (items.length === 1) return;
     saveCurrent(); const index = items.findIndex(item => item.uid === uid);
-    items.splice(index,1);
+    const [removed] = items.splice(index,1); showUndo(removed,index);
+    if (!items.length) { items.push(blank()); journeyStep = 1; }
     if (state.uid === uid) state = items[Math.min(index,items.length-1)];
-    renderEditor(); invalidatePrepared(); if (items.length > 1) $('addDeviceButton').focus(); else focusDevice();
+    if (!state.device) journeyStep = 1;
+    renderEditor(); invalidatePrepared(); $('undoDevice').focus({preventScroll:true});
   }
   function renderDeviceList(order) {
     $('orderDevices').replaceChildren();
@@ -146,30 +200,7 @@
   function refreshServices() {
     setOptions($('mainService'),Q.availableServices(state.device,[],true),'-- اختر الخدمة الأساسية --',state.main);
     $('mainService').disabled = !state.device; state.main = $('mainService').value;
-    const explanations = {
-      clean:'لإزالة الأتربة وتنظيف الجهاز. لو فيه عطل أو سخونة غير طبيعية، الفحص يحدد المطلوب.',
-      thermal:'تغيير مادة نقل الحرارة بين المعالج والتبريد. نراجع حالة الجهاز قبل التنفيذ.',
-      pads:'تغيير وسادات نقل الحرارة داخل الجهاز، بعد مراجعة الحالة والمقاسات المناسبة.',
-      fullthermal:'باقة تجمع التنظيف وتغيير مواد التبريد المذكورة في الخدمة.',
-      drift:'للأنالوج اللي بيحرّك الشخصية أو المؤشر لوحده. الفحص يحدد سبب المشكلة.',
-      buttons:'للأزرار أو الأنالوج اللي مش بيستجيبوا كويس. القطع المطلوبة تُحسب منفصلة.',
-      disc:'لمشكلة قراءة الأقراص أو درج الأقراص. أي قطع مطلوبة لها سعر منفصل.',
-      brick:'لمشاكل النظام أو بدء التشغيل. الأعطال العميقة في البوردة خارج نطاق الخدمة.',
-      inspect:'مش لازم تعرف اسم العطل. نفحص الجهاز ونوضح الخدمة الممكنة وسعرها قبل الشغل.',
-      macos:'تثبيت نظام تشغيل Mac. اعمل نسخة احتياطية من بياناتك قبل تسليم الجهاز.',
-      oclp:'تثبيت macOS أحدث على أجهزة Intel المتوافقة باستخدام OCLP. التوافق والأداء يتأكدوا قبل التنفيذ.',
-      linux:'نظام تشغيل بديل. لو مش عارف تختار التوزيعة، اختار «مش عارف» في الخطوة الجاية.',
-      battery:'السعر للشغل فقط؛ سعر البطارية يتأكد منفصل قبل طلبها.',
-      screen:'السعر للشغل فقط؛ سعر الشاشة يتأكد منفصل قبل طلبها.',
-      storage:'تركيب أو تهيئة وحدة التخزين. القطعة منفصلة، ونسخة بياناتك الاحتياطية مهمة.',
-      charge:'فحص وصيانة منفذ الشحن. أي قطع مطلوبة لها سعر منفصل.',
-      setup:'إعداد البرامج والألعاب التي تملكها بشكل قانوني.',
-      hen:'تعديل نظام الجهاز بعد التأكد من التوافق. راجع التنبيهات والموافقة قبل الإرسال.',
-      cfw:'تعديل نظام الجهاز بعد التأكد من التوافق. راجع التنبيهات والموافقة قبل الإرسال.',
-      opl:'إعداد تشغيل الألعاب التي تملكها، بعد مراجعة توافق الجهاز.',
-      '(jailbreak) goldhen':'التوافق يعتمد على إصدار نظام PS4. نراجعه معاك قبل تأكيد الخدمة.'
-    };
-    $('serviceHelp').textContent = explanations[state.main] || '';
+    $('serviceHelp').textContent = D.serviceDescriptions[state.main] || '';
     $('serviceHelp').hidden = !state.main;
     show('inspectionHelp',!state.main);
     const selected = state.main ? [state.main] : [];
@@ -187,7 +218,9 @@
     state.extras = [...document.querySelectorAll('.additional-service')].map(s => s.value).filter(Boolean);
     $('addServiceButton').disabled = !state.main || !Q.availableServices(state.device,[state.main,...state.extras],false,state.main === 'linux').length;
     show('extraBox',Boolean(state.main) && state.main !== 'inspect'); show('extraRequestBox',Boolean(state.device));
-    show('ps4FirmwareBox',state.device === 'ps4'); $('firmware').required = state.device === 'ps4'; $('firmware').disabled = state.device !== 'ps4';
+    const firmwareNeeded = Q.needsFirmware(state);
+    show('ps4FirmwareBox',firmwareNeeded); $('firmware').required = firmwareNeeded; $('firmware').disabled = !firmwareNeeded;
+    if (!firmwareNeeded) { state.firmware = ''; $('firmware').value = ''; }
   }
   function refreshLinux() {
     const on = state.main === 'linux';
@@ -240,6 +273,10 @@
       const group = element('section',undefined,'device-quote');
       const name = D.devices.find(d => d[0] === item.device)?.[1] || 'جهاز جديد';
       group.append(element('h3','الجهاز ' + (index+1) + ' — ' + name));
+      const actions = element('div',undefined,'quote-actions');
+      const edit = element('button','تعديل','text-button'); edit.type = 'button'; edit.setAttribute('aria-label','تعديل الجهاز ' + (index+1)); edit.addEventListener('click',() => switchItem(item.uid));
+      const remove = element('button','حذف','text-button'); remove.type = 'button'; remove.setAttribute('aria-label','حذف الجهاز ' + (index+1) + ' من الملخص'); remove.addEventListener('click',() => removeItem(item.uid));
+      actions.append(edit,remove); group.append(actions);
       if (item.model) group.append(element('p','الموديل: ' + item.model,'hint'));
       if (!quote) group.append(element('p','لسه فاضل اختيار خدمة الجهاز ده؛ سعره مش داخل الإجمالي.','hint quote-pending'));
       else {
@@ -258,8 +295,18 @@
       $('breakdown').append(group);
     });
     $('offerStatus').textContent = order.offer ? Q.bidiText(order.offer.title + ' · عرض واحد للطلب، بعد تأكيد الاستحقاق.') : ($('applyPromos').checked ? 'ده سعر خدماتك المختارة. لو فيه عرض مناسب، هنحسبه هنا.' : 'السعر بدون عروض.');
+    const payment = $('paymentEstimate'); payment.replaceChildren(); payment.hidden = !hasQuote || order.pending > 0;
+    if (!payment.hidden) {
+      payment.append(element('h3','توزيع مبدئي للدفع'));
+      const half = Math.round(order.total * 50) / 100, rest = Math.round((order.total-half)*100)/100;
+      [['50% عند الاستلام',half],['الباقي عند التسليم',rest]].forEach(([label,value]) => {
+        const row = element('div',undefined,'quote-line'); row.append(element('span',label),element('bdi',money(value))); payment.append(row);
+      });
+      payment.append(element('p','حسب السعر التقريبي الحالي. نأكد المبلغ معاك قبل التسليم للورشة. القطع المستوردة تُدفع منفصلة ومقدمًا؛ الفحص مش رسوم إضافية فوق الخدمة المنفذة.'));
+      if (order.entries.some(e => e.state.main === 'inspect')) payment.append(element('p','الفحص المختار خدمة مستقلة. لو اتفقنا على إصلاح لنفس الجهاز، رسوم الفحص بتتحسب من سعره.'));
+    }
     window.WarshaPicker.sync();
-    updateProgress();
+    renderJourney(); persistDraft();
     $('quoteAnnouncement').textContent = hasQuote ? 'إجمالي ' + items.length + ' جهاز: ' + money(order.total) + (order.pending ? '، أكمل الأجهزة الناقصة.' : '') : '';
   }
   const formatDate = Q.formatOfferDate;
@@ -280,13 +327,14 @@
         const was = p.services.reduce((sum,id) => sum + Q.service(p.device,id).price,0);
         price.append(element('s',money(was)),element('strong',money(p.price)));
       } else price.append(element('strong','خصم ' + p.percentOff + '%'));
-      card.append(price,element('p','لحد ' + formatDate(p.endDate),'hint'));
+      card.append(price,element('p','لحد ' + formatDate(p.endDate) + ' ' + p.endDate.slice(0,4) + ' بتوقيت القاهرة','hint'));
+      if (p.type === 'bundle') card.append(element('p','الباقة تشمل: ' + p.services.map(id => Q.service(p.device,id).name).join(' + ') + '. لو بدأت جهاز بالفعل، هنضيف جهاز مستقل للطلب.','hint'));
       if (p.note) card.append(element('p',p.note,'hint'));
-      const button = element('button',p.type === 'bundle' ? 'اختار الباقة دي' : p.type === 'second-controller' ? 'أضف أيدي التحكم' : 'اختار جهازك واستفيد','button button-outline');
+      const button = element('button',p.type === 'bundle' ? 'أضف ' + D.devices.find(d => d[0] === p.device)[1] + ' بالباقة' : p.type === 'second-controller' ? 'أضف أيدي التحكم' : 'اختار جهازك واستفيد','button button-outline');
       button.type = 'button';
       button.addEventListener('click',() => {
         if (!Q.activePromos().some(item => item.id === p.id)) { renderPromos(); renderQuote(); return; }
-        saveCurrent();
+        saveCurrent(); pendingDraft = null; $('draftResume').hidden = true;
         if (p.type === 'bundle') {
           // A promotion adds a device instead of overwriting another device's work.
           if (state.device || state.main || state.notes || state.model || state.extraRequest) newItem(false);
@@ -296,8 +344,8 @@
           state.category = 'controllers';
         }
         $('applyPromos').checked = true;
-        renderEditor(); invalidatePrepared();
-        scrollToNode(document.querySelector('.category-prompt')); focusDevice();
+        journeyStep = state.device ? 2 : 1; renderEditor(); invalidatePrepared();
+        goStep(journeyStep);
         track('promo_select',{promo:p.id});
       });
       card.append(button);
@@ -312,8 +360,7 @@
   }
 
   function updateProgress() {
-    const inContact = Boolean(document.activeElement?.closest('#checkout'));
-    const current = inContact ? 3 : state.device ? 2 : 1;
+    const current = journeyStep;
     document.querySelectorAll('[data-order-step]').forEach(link => {
       const step = Number(link.dataset.orderStep);
       const available = step === 1 || (step === 2 ? Boolean(state.device) : !$('checkout').classList.contains('hidden'));
@@ -322,27 +369,24 @@
     });
   }
   document.querySelectorAll('[data-order-step]').forEach(link => link.addEventListener('click',event => {
-    if (link.getAttribute('aria-disabled') === 'true') event.preventDefault();
+    event.preventDefault();
+    if (link.getAttribute('aria-disabled') === 'true') return;
+    const step = Number(link.dataset.orderStep);
+    if (step === 3) reviewOrder(); else goStep(step);
   }));
   form.addEventListener('focusin',updateProgress);
   $('chooseInspection').addEventListener('click',() => {
     saveCurrent(); state.main = 'inspect'; state.extras = [];
-    renderEditor(); invalidatePrepared(); scrollToNode($('priceBox'));
+    renderEditor(); invalidatePrepared(); reviewOrder();
   });
 
-  ['addDeviceButton','addAnotherDeviceButton'].forEach(id => $(id).addEventListener('click',() => { saveCurrent(); newItem(); }));
+  ['addDeviceButton','addAnotherDeviceButton','reviewAddDevice'].forEach(id => $(id).addEventListener('click',() => { saveCurrent(); newItem(); }));
   document.querySelectorAll('[data-category]').forEach(button => button.addEventListener('click',() => {
     saveCurrent(); const uid = state.uid;
-    if (button.getAttribute('aria-pressed') === 'true') {
-      state.category = '';
-      button.setAttribute('aria-pressed','false');
-      // Deselect only: preserve values and menu options, without focus or scroll.
-      window.WarshaPicker.close();
-      return;
-    }
+    if (button.getAttribute('aria-pressed') === 'true') return;
     const category = button.dataset.category;
     if (state.device && category && !D.devices.some(d => d[0] === state.device && d[2] === category)) Object.assign(state,blank(),{uid});
-    state.category = category;
+    state.category = category; journeyStep = 1;
     const candidates = D.devices.filter(d => !category || d[2] === category);
     if (category && candidates.length === 1) state.device = candidates[0][0];
     renderEditor(); invalidatePrepared(); scrollToNode(document.querySelector('.category-prompt')); focusDevice();
@@ -359,6 +403,7 @@
   $('applyPromos').addEventListener('change',() => { renderQuote(); invalidatePrepared(); });
   form.addEventListener('input',event => {
     if (event.target.setCustomValidity) event.target.setCustomValidity('');
+    if (event.target.id === 'name') show('nameError',false);
     event.target.removeAttribute('aria-invalid'); show('formError',false);
     if (event.target.id === 'phone') show('phoneError',false);
     saveCurrent(); renderQuote(); invalidatePrepared();
@@ -373,15 +418,8 @@
     saveCurrent();
   }));
   function validate() {
-    // Validate inactive devices too, then open the exact device that needs work.
-    const incomplete = items.find(item => Q.deviceIssue(item));
-    if (incomplete) {
-      state = incomplete; renderEditor(); const issue = Q.deviceIssue(state);
-      $('formError').textContent = 'الجهاز ' + (items.indexOf(state)+1) + ': ' + issue.text;
-      show('formError',true);
-      const field = issue.field === 'linuxModeBox' ? document.querySelector('[name="linuxMode"]') : $(issue.field);
-      field.setAttribute('aria-invalid','true'); const target=focusControl(field); scrollToNode(target); return false;
-    }
+    if (!validateDevices()) return false;
+    goStep(3,false);
     // Bring the required modification consent into view before contact validation.
     const missingModdingConsent = $('moddingOptIn').required && !$('moddingOptIn').checked;
     show('moddingError',missingModdingConsent);
@@ -397,16 +435,19 @@
     $('name').setCustomValidity($('name').value.trim() ? '' : 'اكتب اسمك.');
     $('phone').value = Q.normalizePhone($('phone').value);
     $('phone').setCustomValidity(Q.validPhone($('phone').value) ? '' : 'اكتب رقم موبايل مصري صحيح.');
+    $('agree').setCustomValidity($('agree').checked ? '' : 'وافق على بنود الخدمة وسياسة الدفع قبل تجهيز الرسالة.');
     const invalid = [...form.elements].find(field => field.willValidate && !field.validity.valid);
     for (const field of form.elements) if (field.willValidate) field.setAttribute('aria-invalid',String(!field.validity.valid));
+    show('nameError',!$('name').validity.valid);
     show('phoneError',!$('phone').validity.valid); show('agreeError',!$('agree').checked);
     show('moddingError',$('moddingOptIn').required && !$('moddingOptIn').checked);
     if (!invalid) { show('formError',false); return true; }
     const label = invalid.labels?.[0]?.textContent.replace(/\s+/g,' ').trim() || 'البيانات المطلوبة';
-    $('formError').textContent = 'راجع الحقل: ' + label; show('formError',true); scrollToNode(focusControl(invalid)); if(invalid.tagName!=='SELECT') invalid.reportValidity(); return false;
+    $('formError').textContent = 'راجع الحقل: ' + label; show('formError',true); scrollToNode(focusControl(invalid)); return false;
   }
   form.addEventListener('submit',event => {
-    event.preventDefault(); saveCurrent(); refresh(); if (!validate()) return;
+    event.preventDefault();
+    if (journeyStep < 3) { if (journeyStep === 1 && state.device) goStep(2); else if (journeyStep === 2) reviewOrder(); return; } saveCurrent(); refresh(); if (!validate()) return;
     const order = Q.calculateOrder(items,$('applyPromos').checked);
     const customer = {name:$('name').value,phone:$('phone').value};
     const signature = JSON.stringify({items:items.map(({uid,category,...data}) => data),customer,total:order.total,offer:order.offer?.id});
@@ -420,8 +461,7 @@
     $('orderRef').textContent = lastReference; $('messagePreview').textContent = lastMessage;
     $('whatsappFallback').href = wa(lastMessage); $('copyStatus').textContent = ''; show('successBox',true);
     $('successBox').focus({preventScroll:true}); scrollToNode($('successBox'));
-    window.open(wa(lastMessage),'_blank','noopener,noreferrer');
-    track('whatsapp_handoff',{device_count:items.length,promo:order.offer?.id || 'none'});
+    track('request_prepared',{device_count:items.length,promo:order.offer?.id || 'none'});
   });
   $('copyRequest').addEventListener('click',async () => {
     try { await navigator.clipboard.writeText(lastMessage); $('copyStatus').textContent = 'تم نسخ تفاصيل الطلب.'; }
@@ -474,8 +514,43 @@
   });
   document.querySelector('.hero-cta').addEventListener('click',() => track('hero_cta_click'));
   setOptions($('linuxDistro'),D.LINUX_DISTROS.map(([id,label,tier]) => [id,label,D.LINUX_TIERS[tier].price]),'-- اختر التوزيعة --');
+  $('nextService').addEventListener('click',() => { saveCurrent(); if (state.device) goStep(2); });
+  $('backDevice').addEventListener('click',() => goStep(1));
+  $('backService').addEventListener('click',() => goStep(2));
+  ['nextContact','quoteContinue','mobileReview'].forEach(id => $(id).addEventListener('click',reviewOrder));
+  $('undoDevice').addEventListener('click',() => {
+    if (!removedDevice) return;
+    saveCurrent();
+    if (removedDevice.wasLast && items.length === 1 && !items[0].device && !items[0].category) items.splice(0,1);
+    items.splice(Math.min(removedDevice.index,items.length),0,removedDevice.item); state = removedDevice.item;
+    removedDevice = null; $('undoRemoval').hidden = true; journeyStep = state.device ? 2 : 1;
+    renderEditor(); invalidatePrepared(); goStep(journeyStep);
+  });
+  function clearChoices() {
+    pendingDraft = null; removedDevice = null; $('undoRemoval').hidden = true; $('draftResume').hidden = true;
+    items.splice(0,items.length,blank()); state = items[0]; journeyStep = 1;
+    ['name','phone'].forEach(id => { $(id).value = ''; $(id).setCustomValidity(''); });
+    ['agree','moddingOptIn'].forEach(id => { $(id).checked = false; $(id).setCustomValidity(''); });
+    ['formError','nameError','phoneError','agreeError','moddingError'].forEach(id => show(id,false));
+    $('applyPromos').checked = true; renderEditor(); invalidatePrepared(); goStep(1);
+  }
+  $('clearDraft').addEventListener('click',clearChoices);
+  $('discardDraft').addEventListener('click',clearChoices);
+  $('resumeDraft').addEventListener('click',() => {
+    if (!pendingDraft) return;
+    const draft = pendingDraft; pendingDraft = null; $('draftResume').hidden = true;
+    items.splice(0,items.length,...draft.items.map(item => Object.assign(blank(),item)));
+    state = items.find(item => Q.deviceIssue(item)) || items[0];
+    $('applyPromos').checked = draft.applyPromos; journeyStep = state.device ? 2 : 1;
+    renderEditor(); invalidatePrepared(); goStep(journeyStep);
+  });
+  // If a customer starts fresh instead, deliberately discard the older draft.
+  document.querySelectorAll('[data-category]').forEach(button => button.addEventListener('click',() => {
+    if (pendingDraft) { pendingDraft = null; $('draftResume').hidden = true; persistDraft(); }
+  }));
+  $('draftResume').hidden = !pendingDraft;
   const mobileLayout = window.matchMedia('(max-width: 760px)'), quoteColumn = document.querySelector('.quote-column');
-  function placeQuote() { if (mobileLayout.matches) $('stepService').after(quoteColumn); else document.querySelector('.booking-layout').append(quoteColumn); }
+  function placeQuote() { if (mobileLayout.matches) $('reviewQuoteSlot').append(quoteColumn); else document.querySelector('.booking-layout').append(quoteColumn); renderJourney(); }
   mobileLayout.addEventListener('change',placeQuote); placeQuote();
   renderEditor(); renderPromos(); chooseRating(0); initAnalytics();
 })();

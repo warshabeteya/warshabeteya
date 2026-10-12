@@ -1,0 +1,43 @@
+/* Focused customer journeys layered over the established visual identity. */
+.inquiry-entry{margin:24px 0;border:1px solid #b9cec2;border-radius:18px;background:#eef3ed;scroll-margin-top:20px}
+.inquiry-entry>summary{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:22px;list-style:none}
+.inquiry-entry>summary::-webkit-details-marker{display:none}
+.inquiry-entry>summary strong,.inquiry-entry>summary small{display:block}
+.inquiry-entry>summary small{font-size:14px;color:var(--muted);font-weight:400;margin-top:4px}
+.inquiry-entry[open]>summary>span:last-child{transform:rotate(45deg)}
+.inquiry-entry .inquiry-panel{margin:0;border:0;padding-top:8px;background:transparent}
+.draft-tools,.step-context,.action-row,.undo-notice{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.draft-tools{margin-bottom:16px}.draft-tools p{margin:0;font-size:13px;flex:1;min-width:150px}
+.draft-resume,.undo-notice{border:1px solid #b9cec2;border-radius:14px;padding:18px;background:#eaf2ed;margin-bottom:16px}
+.draft-resume p{font-size:15px;margin:6px 0 14px}.action-row{justify-content:flex-start}
+.text-button{border:0;background:transparent;color:#234b3b;text-decoration:underline;text-underline-offset:5px;min-height:44px;padding:8px 4px;font-size:15px;font-weight:700}
+.step-context{margin-bottom:20px;border-bottom:1px solid var(--line);padding-bottom:10px;font-size:16px;font-weight:700}
+#deviceStage,#stepService,#checkout{scroll-margin-top:20px;outline-offset:6px}
+#nextService{width:100%;margin:8px 0 24px}.review-intro{margin-bottom:20px}.review-intro .text-button{margin-inline-end:16px}
+.quote-actions{display:flex;gap:16px;flex-wrap:wrap;margin:4px 0 12px}.quote-actions button{font-size:14px}
+.payment-estimate{border-top:1px solid #c8d9ce;margin-top:20px;padding-top:16px}.payment-estimate h3{font-size:17px}.payment-estimate p{font-size:14px;margin:8px 0 0;color:var(--muted)}
+.expectation-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}.expectation-grid p{font-size:16px;color:var(--muted)}
+.choice-option .choice-name{display:flex;flex-direction:column}.choice-description{font-size:13px;color:var(--muted);font-weight:400;line-height:1.7;margin-top:5px}
+.model-card strong{overflow-wrap:normal;word-break:normal;font-size:18px}.model-card small{overflow-wrap:normal}
+.photo-button{display:block;padding:0;width:100%;border:0;background:transparent;border-radius:12px;cursor:zoom-in}.photo-button img{display:block}
+.demo-action{margin-top:12px}.demo-card{display:flex;flex-direction:column}.demo-card .demo-action{margin-top:auto;align-self:flex-start}
+#photoDialog{max-width:min(900px,94vw);max-height:94dvh;border:1px solid #b9cec2;border-radius:18px;padding:18px;background:#f6f8f7;color:var(--ink)}
+#photoDialog::backdrop{background:#0c2233bf}#photoDialog img{display:block;max-height:72dvh;width:100%;object-fit:contain;margin:12px auto}#photoDialog p{margin:0}
+.inquiry-panel input[aria-invalid=true],.inquiry-panel select[aria-invalid=true]{border:2px solid var(--red)}
+@media(max-width:760px){
+ .site-header{gap:8px;padding-block:12px}.wordmark{font-size:20px}.wordmark small{font-size:10px}.wordmark img{width:30px;height:34px}.header-contact{font-size:13px;padding:8px}
+ .site-header nav{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;text-align:center;padding-top:4px}.site-header nav a{font-size:12px;padding:8px 0}
+ .hero{padding:18px 0}.hero h1{font-size:32px;line-height:1.5;margin-bottom:14px}.hero-tagline{font-size:16px;line-height:1.85}.hero-actions{margin-top:16px}.hero-note{font-size:13px}
+ .trust-strip{display:flex;flex-wrap:wrap;gap:8px;padding-block:12px}.trust-strip span{font-size:12px}.trust-strip b{display:none}
+ .inquiry-entry>summary{padding:16px}.inquiry-entry>summary strong{font-size:17px}.inquiry-entry .inquiry-panel{padding:8px 14px 16px}.inquiry-panel form{padding:16px}.inquiry-panel .optional-details>summary{font-size:15px}
+ .booking-section{padding-top:20px}.section-intro h2{font-size:28px}.section-intro p{font-size:15px}
+ .device-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.device-card{padding:14px 12px;min-height:120px}.device-card[aria-pressed=true]{padding:13px 11px}.device-card svg{float:none;width:25px;height:25px;margin:0 0 8px}.device-card strong{font-size:16px;padding-inline-end:12px}.category-models{gap:4px;padding-top:4px;margin-top:6px!important}.category-models bdi{padding:0;border:0;background:transparent;font-size:12px}.device-card span{font-size:12px}
+ .model-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.model-card,.model-card[aria-pressed=true]{padding:18px 10px}.model-card strong{font-size:17px}.model-card small{font-size:13px}.model-card[aria-pressed=true] strong{padding-inline-end:0}
+ .expectation-grid{grid-template-columns:1fr;gap:8px}.expectations h2{font-size:26px}.expectation-grid h3{margin-bottom:8px}
+ .review-intro h2{font-size:26px}.mobile-quote a{white-space:normal}.mobile-quote{font-size:14px;min-height:66px}
+}
+@media(max-width:360px){.hero h1{font-size:29px}.wordmark{font-size:18px}.header-contact{font-size:12px}.model-grid:has([data-model='mac-intel']){grid-template-columns:1fr}.site-header nav a{font-size:11px}.draft-tools{align-items:flex-start}}
+@media print{.draft-tools,.draft-resume,.text-button,#nextService,.quote-actions{display:none!important}}
+
+.booking-layout[data-step="1"]{grid-template-columns:minmax(0,1fr)}
+@media(min-width:1001px){.booking-layout[data-step="1"] .device-cards{grid-template-columns:repeat(4,minmax(0,1fr))}.booking-layout[data-step="1"] #stepDevice{max-width:850px}.booking-layout[data-step="1"] #nextService{max-width:400px}}

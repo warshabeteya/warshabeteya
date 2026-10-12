@@ -99,10 +99,13 @@
     return {lines,subtotal,discount,total:Math.round((subtotal-discount)*100)/100,offer,warnings,
       requiresModding:selected.some(id => D.moddingServices.has(id))};
   }
+  function needsFirmware(state) {
+    return state.device === 'ps4' && [state.main,...(state.extras || [])].some(id => ['(jailbreak) goldhen','setup','brick'].includes(id));
+  }
   function deviceIssue(state) {
     if (!D.devices.some(d => d[0] === state.device)) return {field:'device',text:'اختار نوع الجهاز.'};
     if (!service(state.device,state.main) || D.LINUX_ADDON_IDS.has(state.main)) return {field:'mainService',text:'اختار الخدمة الأساسية.'};
-    if (state.device === 'ps4' && !state.firmware) return {field:'firmware',text:'اختار إصدار نظام PS4 أو «لا أعرف».'};
+    if (needsFirmware(state) && !state.firmware) return {field:'firmware',text:'اختار إصدار نظام PS4 أو «لا أعرف».'};
     if (state.main === 'linux') {
       if (!D.LINUX_DISTROS.some(d => d[0] === state.distro)) return {field:'linuxDistro',text:'اختار توزيعة Linux.'};
       if (!Object.hasOwn(D.LINUX_MODES,state.mode)) return {field:'linuxModeBox',text:'اختار طريقة تثبيت Linux.'};
@@ -151,7 +154,7 @@
     order.entries.forEach(({state,quote,index}) => {
       lines.push('--------------------------------','الجهاز ' + (index+1) + ': ' + D.devices.find(d => d[0] === state.device)[1],
         'رقم الموديل: ' + (state.model?.trim() || 'لا أعرف'));
-      if (state.device === 'ps4') lines.push('إصدار النظام: ' + state.firmware);
+      if (needsFirmware(state)) lines.push('إصدار النظام: ' + state.firmware);
       quote.lines.forEach(line => lines.push('• ' + line.name,'  السعر: ' + line.price + ' جنيه'));
       if (state.main === 'linux') lines.push('طريقة التثبيت: ' + D.LINUX_MODES[state.mode],'تأكيد النسخة الاحتياطية لهذا الجهاز: نعم');
       if (state.notes?.trim()) lines.push('ملاحظات الجهاز: ' + state.notes.trim());
@@ -176,7 +179,7 @@
       'طلب صيانة - ' + D.CONFIG.name, 'مرجع الطلب: ' + reference, '--------------------------------',
       'الاسم: ' + customer.name.trim(), 'واتساب: ' + normalizePhone(customer.phone),
       'الجهاز: ' + device[1], 'رقم الموديل: ' + (customer.model.trim() || 'لا أعرف'),
-      state.device === 'ps4' ? 'إصدار نظام PS4: ' + customer.firmware : '',
+      needsFirmware(state) ? 'إصدار نظام PS4: ' + customer.firmware : '',
       ...quote.lines.map(line => line.name + ': ' + line.price + ' جنيه'),
       state.main === 'linux' ? 'طريقة التثبيت: ' + D.LINUX_MODES[state.mode] : '',
       state.main === 'linux' ? 'تأكيد النسخة الاحتياطية: نعم' : '',
@@ -193,5 +196,5 @@
       'سأرسل صور الجهاز والموديل إن أمكن.'
     ].filter(Boolean).join('\n'));
   }
-  return {bidiText,optionLabel,deviceIssue,calculateOrder,orderMessage,toWesternDigits,displayText,formatMoney,formatOfferDate,cairoDate,activePromos,normalizePhone,validPhone,service,components,conflict,availableServices,calculate,message};
+  return {bidiText,optionLabel,needsFirmware,deviceIssue,calculateOrder,orderMessage,toWesternDigits,displayText,formatMoney,formatOfferDate,cairoDate,activePromos,normalizePhone,validPhone,service,components,conflict,availableServices,calculate,message};
 });
