@@ -37,14 +37,17 @@ $('inquiryForm').addEventListener('submit',event=>{
  $('inqSend').href='https://wa.me/'+window.WarshaData.CONFIG.whatsapp+'?text='+encodeURIComponent(text);
  $('inqResult').hidden=false; $('inqResult').focus();
 });
-const demos=(window.WarshaDemonstrations||[]).filter(d=>d.title&&d.before&&d.after&&d.work&&d.test&&['own','customer-permission'].includes(d.ownership));
+const demos=(window.WarshaDemonstrations||[]).filter(d=>d.title&&((d.before&&d.after&&d.work&&d.test)||(d.image&&d.caption))&&['own','customer-permission'].includes(d.ownership));
 const el=(tag,text)=>{const n=document.createElement(tag);n.textContent=text;return n;};
 for(const d of demos){
  const card=el('article','');card.className='demo-card';
  const badge=el('span',d.ownership==='own'?'تجارب موثّقة، خطوة بخطوة.':'شغل عميل · منشور بإذنه');badge.className='demo-badge';card.append(badge,el('h3',d.title));
- const photos=el('div','');photos.className='demo-photos';
- for(const [key,label] of [['before','قبل'],['after','بعد']]){const f=el('figure','');const img=document.createElement('img');img.src=d[key];img.alt=label+' — '+d.title;img.loading='lazy';f.append(img,el('figcaption',label));photos.append(f);}
- card.append(photos,el('p','الشغل: '+d.work),el('p','الملاحظة: '+d.test));$('demoCards').append(card);
+ const photos=el('div','');photos.className='demo-photos'+(d.image?' demo-single':'');
+ for(const [key,label] of (d.image?[['image','صور من أثناء الشغل']]:[['before',d.beforeLabel||'قبل'],['after',d.afterLabel||'بعد']])){const f=el('figure','');const img=document.createElement('img');img.src=d[key];img.alt=label+' — '+d.title;img.loading='lazy';f.append(img,el('figcaption',label));photos.append(f);}
+ card.append(photos);
+ if(d.image) card.append(el('p',d.caption));
+ else card.append(el('p','الشغل: '+d.work),el('p','الملاحظة: '+d.test));
+ $('demoCards').append(card);
 }
 $('workGallery').hidden=!demos.length;
 })();
