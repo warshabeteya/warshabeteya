@@ -83,6 +83,9 @@
       opl:'إعداد تشغيل الألعاب التي تملكها، بعد مراجعة توافق الجهاز.',
       '(jailbreak) goldhen':'التوافق يعتمد على إصدار نظام PS4. نراجعه معاك قبل تأكيد الخدمة.'
     };
+  const serviceDescription = (device,id) => device === 'mac-silicon' && id === 'clean'
+    ? 'تنظيف خارجي وفحص مبدئي فقط. التنظيف الداخلي وأي إصلاح آخر يحتاج تأكيد توفره أولًا.'
+    : serviceDescriptions[id] || '';
   const deviceGuidance = device => device === 'mac-silicon' ? 'متاح لـ Apple Silicon: تنظيف خارجي وفحص مبدئي فقط. أي إصلاح آخر يحتاج تأكيد توفره أولًا.' : '';
   const inquirySymptoms = device => {
     if (device === 'other') return ['محتاج أتأكد إن الخدمة متاحة'];
@@ -94,6 +97,6 @@
     return ['صوت المروحة عالي أو سخونة','مشكلة نظام أو بطء','مش بيشتغل','مشكلة تانية'];
   };
   const moddingServices = new Set(['hen','cfw','(jailbreak) goldhen','oclp','oclp_full','jailbreak','setup','opl','brick']);
-  return { CONFIG, services, devices, serviceDescriptions, deviceGuidance, inquirySymptoms, moddingServices, LINUX_TIERS, LINUX_DISTROS,
+  return { CONFIG, services, devices, serviceDescriptions, serviceDescription, deviceGuidance, inquirySymptoms, moddingServices, LINUX_TIERS, LINUX_DISTROS,
     LINUX_MODES, LINUX_ADDONS, LINUX_ADDON_IDS, LINUX_DUAL_BOOT_FEE };
 });

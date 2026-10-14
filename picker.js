@@ -19,7 +19,7 @@
     const data=parts(option), label=document.createElement('span');
     label.className='choice-name'; label.textContent=WarshaQuote.bidiText(data.label);
     if (node.classList.contains('choice-option') && option?.value && (option.parentElement.id === 'mainService' || option.parentElement.classList.contains('additional-service'))) {
-      const description = WarshaData.serviceDescriptions[option.value];
+      const description = WarshaData.serviceDescription(document.getElementById('device').value,option.value);
       if (description) { const hint = document.createElement('small'); hint.className='choice-description'; hint.textContent=description; label.append(hint); }
     }
     node.append(label);

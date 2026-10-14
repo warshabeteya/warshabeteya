@@ -65,6 +65,16 @@
       return !selected.some(other => conflict(device,id,other));
     });
   }
+  function mainServiceOptions(state) {
+    const distro = state.main === 'linux' && D.LINUX_DISTROS.find(d => d[0] === state.distro);
+    return availableServices(state.device,[],true).map(([id,label,price]) =>
+      id === 'linux' ? [id,label + (distro ? '' : ' (ابتداءً من)'),D.LINUX_TIERS[distro ? distro[2] : 'std'].price] : [id,label,price]);
+  }
+  function notesRequirement(state) {
+    if (needsFirmware(state) && state.firmware === 'أخرى') return 'اكتب إصدار نظام PS4 في الملاحظات، أو اختار «لا أعرف».';
+    if (state.main === 'linux' && ['custom','other'].includes(state.distro)) return 'اكتب اسم التوزيعة أو تفاصيل إعداد Linux المطلوب في الملاحظات.';
+    return '';
+  }
   function calculate(state, now = new Date()) {
     const base = service(state.device, state.main);
     if (!base || D.LINUX_ADDON_IDS.has(base.id)) return null;
@@ -111,6 +121,8 @@
       if (!Object.hasOwn(D.LINUX_MODES,state.mode)) return {field:'linuxModeBox',text:'اختار طريقة تثبيت Linux.'};
       if (!state.backup) return {field:'linuxBackup',text:'أكد النسخة الاحتياطية للجهاز ده قبل المتابعة.'};
     }
+    const requiredNotes = notesRequirement(state);
+    if (requiredNotes && !state.notes?.trim()) return {field:'notes',text:requiredNotes};
     return null;
   }
   function calculateOrder(states, applyPromos = true, now = new Date()) {
@@ -196,5 +208,5 @@
       'سأرسل صور الجهاز والموديل إن أمكن.'
     ].filter(Boolean).join('\n'));
   }
-  return {bidiText,optionLabel,needsFirmware,deviceIssue,calculateOrder,orderMessage,toWesternDigits,displayText,formatMoney,formatOfferDate,cairoDate,activePromos,normalizePhone,validPhone,service,components,conflict,availableServices,calculate,message};
+  return {mainServiceOptions,notesRequirement,bidiText,optionLabel,needsFirmware,deviceIssue,calculateOrder,orderMessage,toWesternDigits,displayText,formatMoney,formatOfferDate,cairoDate,activePromos,normalizePhone,validPhone,service,components,conflict,availableServices,calculate,message};
 });

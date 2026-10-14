@@ -68,6 +68,8 @@
     return node;
   };
   const focusControl = node => {
+    const disclosure = node.closest('details');
+    if (disclosure) disclosure.open = true;
     if (node.id === 'device') {
       const target = document.querySelector('#deviceModels [aria-pressed=true]') || document.querySelector('#deviceModels button') || document.querySelector('[data-category]');
       target.focus({preventScroll:true}); return target;
@@ -187,7 +189,7 @@
     // No mutation of a different device while rebuilding the active editor.
     setOptions($('device'),D.devices.filter(d => d[2] === (state.category || D.devices.find(row => row[0] === state.device)?.[2])).map(d => d.slice(0,2)),'-- اختر الجهاز --',state.device);
     renderModels();
-    setOptions($('mainService'),Q.availableServices(state.device,[],true),'-- اختر الخدمة الأساسية --',state.main);
+    setOptions($('mainService'),Q.mainServiceOptions(state),'-- اختر الخدمة الأساسية --',state.main);
     ['model','firmware','notes','extraRequest'].forEach(key => $(key).value = state[key]);
     $('linuxDistro').value = state.distro;
     document.querySelectorAll('[name="linuxMode"]').forEach(r => r.checked = r.value === state.mode);
@@ -198,9 +200,9 @@
     refresh();
   }
   function refreshServices() {
-    setOptions($('mainService'),Q.availableServices(state.device,[],true),'-- اختر الخدمة الأساسية --',state.main);
+    setOptions($('mainService'),Q.mainServiceOptions(state),'-- اختر الخدمة الأساسية --',state.main);
     $('mainService').disabled = !state.device; state.main = $('mainService').value;
-    $('serviceHelp').textContent = D.serviceDescriptions[state.main] || '';
+    $('serviceHelp').textContent = D.serviceDescription(state.device,state.main);
     $('serviceHelp').hidden = !state.main;
     show('inspectionHelp',!state.main);
     const selected = state.main ? [state.main] : [];
@@ -234,7 +236,16 @@
     $('linuxBackup').required = hasMode; $('linuxBackup').disabled = !hasMode; $('linuxBackup').checked = state.backup;
     show('linuxBitlockerHint',state.mode !== 'wipe');
   }
-  function refresh() { refreshServices(); refreshLinux(); renderQuote(); }
+  function refreshNotes() {
+    const requirement = Q.notesRequirement(state);
+    $('notes').required = Boolean(requirement);
+    $('notesLabel').textContent = requirement ? 'تفاصيل الخدمة المطلوبة *' : 'احكيلنا إيه اللي محتاج عناية (اختياري)';
+    $('notesRequirement').textContent = requirement;
+    $('notesRequirement').hidden = !requirement;
+    $('serviceNotesSummary').textContent = requirement ? 'تفاصيل مطلوبة عن الخدمة' : 'ملاحظات أو طلب خاص (اختياري)';
+    if (requirement) $('serviceNotes').open = true;
+  }
+  function refresh() { refreshServices(); refreshLinux(); refreshNotes(); renderQuote(); }
   function moddingScope(entries) {
     const ps = new Set(['ps1','ps2','ps3','ps4','psp','vita']);
     return {
@@ -399,6 +410,7 @@
   $('addServiceButton').addEventListener('click',() => { const select = mountExtra(); refresh(); focusControl(select); });
   $('linuxDistro').addEventListener('change',() => { saveCurrent(); state.backup = false; refresh(); invalidatePrepared(); });
   $('linuxModeBox').addEventListener('change',() => { saveCurrent(); state.backup = false; refresh(); invalidatePrepared(); });
+  $('firmware').addEventListener('change',refreshNotes);
   $('linuxBackup').addEventListener('change',() => { saveCurrent(); renderQuote(); invalidatePrepared(); });
   $('applyPromos').addEventListener('change',() => { renderQuote(); invalidatePrepared(); });
   form.addEventListener('input',event => {
@@ -470,7 +482,10 @@
   // Accessible RTL radio group: roving tab stop, arrows, Home and End.
   const stars = [...document.querySelectorAll('#starRating .star')];
   let rating = 0;
+  function invalidateRating() { const link = $('ratingFallback'); if (link) { link.hidden = true; link.removeAttribute('href'); } }
+  $('rateComment').addEventListener('input',invalidateRating);
   function chooseRating(value, focus = false) {
+    invalidateRating();
     rating = value;
     stars.forEach((button,index) => {
       button.setAttribute('aria-checked',String(index + 1 === rating));
@@ -497,7 +512,7 @@
     window.open(wa(message),'_blank','noopener,noreferrer');
     let fallback = $('ratingFallback');
     if (!fallback) { fallback = element('a','فتح رسالة التقييم على واتساب','rating-fallback'); fallback.id = 'ratingFallback'; fallback.target = '_blank'; fallback.rel = 'noopener noreferrer'; $('rateSendButton').after(fallback); }
-    fallback.href = wa(message); track('rating_handoff');
+    fallback.href = wa(message); fallback.hidden = false; track('rating_handoff');
   });
 
   function checkCampaignDate() {
