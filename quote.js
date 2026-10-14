@@ -1,9 +1,13 @@
 /* Shared, side-effect-free pricing and validation. No DOM or network access. */
 (function(root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('./data.js'), require('./promos.js'));
+  if (typeof module === 'object' && module.exports) {
+    module.exports = factory(require('./data.js'), []);
+    module.exports.withPromos = campaigns => factory(require('./data.js'), campaigns);
+  }
   else root.WarshaQuote = factory(root.WarshaData, root.WarshaPromos);
 })(typeof globalThis !== 'undefined' ? globalThis : this, function(D, promos) {
   'use strict';
+  promos = Array.isArray(promos) ? promos : [];
   // Explicit latn digits: Arabic UI language must never change 0–9 glyphs.
   // Reuse formatters instead of recreating them on every field change.
   const numberFormat = new Intl.NumberFormat('ar-EG', {numberingSystem:'latn', maximumFractionDigits:2});
@@ -35,6 +39,7 @@
     return `${get('year')}-${get('month')}-${get('day')}`;
   }
   function activePromos(now = new Date()) {
+    if (!promos.length) return [];
     const date = cairoDate(now);
     return promos.filter(p => p.active && (!p.startDate || date >= p.startDate) && (!p.endDate || date <= p.endDate));
   }
@@ -128,7 +133,7 @@
   function calculateOrder(states, applyPromos = true, now = new Date()) {
     const entries = states.map((state,index) => ({index,state,quote:calculate({...state,applyPromos:false},now)}));
     let saving = 0, chosen = null, target = -1;
-    if (applyPromos) {
+    if (applyPromos && activePromos(now).length) {
       entries.forEach(entry => {
         const candidate = calculate({...entry.state,applyPromos:true},now);
         if (candidate && candidate.discount > saving) {
@@ -174,8 +179,8 @@
       if (quote.offer) lines.push('العرض: ' + quote.offer.title + ' [' + quote.offer.id + ']','خصم الجهاز: ' + quote.discount + ' جنيه');
       lines.push('إجمالي الجهاز ' + (index+1) + ': ' + quote.total + ' جنيه',...quote.warnings);
     });
-    lines.push('--------------------------------','الإجمالي قبل الخصم: ' + order.subtotal + ' جنيه',
-      'إجمالي الخصم: ' + order.discount + ' جنيه','إجمالي الطلب التقريبي: ' + order.total + ' جنيه',
+    lines.push('--------------------------------',order.discount ? 'الإجمالي قبل الخصم: ' + order.subtotal + ' جنيه' : '',
+      order.discount ? 'إجمالي الخصم: ' + order.discount + ' جنيه' : '','إجمالي الطلب التقريبي: ' + order.total + ' جنيه',
       'الأسعار لا تشمل قطع الغيار أو الشحن أو الجمارك.',
       'رسوم الفحص: ' + D.CONFIG.inspectionFee + ' جنيه لكل جهاز، محسوبة ضمن خدمته عند التنفيذ.',
       order.offer ? 'عرض واحد للطلب، مع تأكيد الاستحقاق والعربون قبل انتهاء العرض على واتساب.' : '',
@@ -208,5 +213,5 @@
       'سأرسل صور الجهاز والموديل إن أمكن.'
     ].filter(Boolean).join('\n'));
   }
-  return {mainServiceOptions,notesRequirement,bidiText,optionLabel,needsFirmware,deviceIssue,calculateOrder,orderMessage,toWesternDigits,displayText,formatMoney,formatOfferDate,cairoDate,activePromos,normalizePhone,validPhone,service,components,conflict,availableServices,calculate,message};
+  return {hasCampaigns:() => promos.some(p => p.active),mainServiceOptions,notesRequirement,bidiText,optionLabel,needsFirmware,deviceIssue,calculateOrder,orderMessage,toWesternDigits,displayText,formatMoney,formatOfferDate,cairoDate,activePromos,normalizePhone,validPhone,service,components,conflict,availableServices,calculate,message};
 });

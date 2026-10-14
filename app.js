@@ -273,8 +273,9 @@
     show('deviceManager',items.length > 1);
     show('activeDeviceLabel',items.length > 1);
     $('emptyQuote').hidden = hasQuote;
-    document.querySelector('.offer-toggle').hidden = !hasQuote;
-    show('offerStatus',hasQuote);
+    const hasOffers = Q.activePromos().length > 0;
+    document.querySelector('.offer-toggle').hidden = !hasQuote || !hasOffers;
+    show('offerStatus',hasQuote && hasOffers);
     $('quoteDetails').hidden = !hasQuote;
     $('total').textContent = hasQuote ? money(order.total) : '—';
     $('quoteDevice').textContent = items.length + ' جهاز في الطلب' + (order.pending ? ' · ' + order.pending + ' بدون خدمة مختارة' : '');
@@ -305,7 +306,7 @@
       }
       $('breakdown').append(group);
     });
-    $('offerStatus').textContent = order.offer ? Q.bidiText(order.offer.title + ' · عرض واحد للطلب، بعد تأكيد الاستحقاق.') : ($('applyPromos').checked ? 'ده سعر خدماتك المختارة. لو فيه عرض مناسب، هنحسبه هنا.' : 'السعر بدون عروض.');
+    $('offerStatus').textContent = !hasOffers ? '' : order.offer ? Q.bidiText(order.offer.title + ' · عرض واحد للطلب، بعد تأكيد الاستحقاق.') : ($('applyPromos').checked ? 'ده سعر خدماتك المختارة. لو فيه عرض مناسب، هنحسبه هنا.' : 'السعر بدون عروض.');
     const payment = $('paymentEstimate'); payment.replaceChildren(); payment.hidden = !hasQuote || order.pending > 0;
     if (!payment.hidden) {
       payment.append(element('h3','توزيع مبدئي للدفع'));
@@ -518,8 +519,10 @@
   function checkCampaignDate() {
     if (campaignDate !== Q.cairoDate()) { renderPromos(); renderQuote(); invalidatePrepared(); }
   }
-  document.addEventListener('visibilitychange',() => { if (!document.hidden) checkCampaignDate(); });
-  window.addEventListener('focus',checkCampaignDate); setInterval(checkCampaignDate,60000);
+  if (Q.hasCampaigns()) {
+    document.addEventListener('visibilitychange',() => { if (!document.hidden) checkCampaignDate(); });
+    window.addEventListener('focus',checkCampaignDate); setInterval(checkCampaignDate,60000);
+  }
   document.querySelectorAll('[data-inspection-fee]').forEach(node => node.textContent = D.CONFIG.inspectionFee);
   document.querySelectorAll('[data-whatsapp]').forEach(link => { link.href = wa('مرحبًا، عندي استفسار عن صيانة أجهزتي.'); link.addEventListener('click',() => track('whatsapp_enquiry')); });
   document.querySelectorAll('[data-facebook]').forEach(link => link.href = D.CONFIG.facebook);
