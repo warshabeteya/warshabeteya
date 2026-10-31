@@ -1,0 +1,14 @@
+{
+  "name": "warshabeteya-site",
+  "private": true,
+  "version": "2026.10.23",
+  "scripts": {
+    "build": "node tools/build.cjs",
+    "test": "node --test tests/*.test.cjs",
+    "start:validation": "node server/server.cjs"
+  },
+  "devDependencies": {
+    "acorn": "8.19.0",
+    "jsdom": "30.1.3"
+  }
+}

@@ -24,8 +24,8 @@
       ds2: [ ['clean','تنظيف عميق',100], ['drift','صيانة Analog / حل الانحراف',180], ['buttons','صيانة أزرار',150], ['inspect','فحص مبدئي',CONFIG.inspectionFee] ],
       ds3: [ ['clean','تنظيف عميق',120], ['drift','صيانة Analog / حل الانحراف',200], ['buttons','صيانة أزرار',160], ['battery','تغيير بطارية (القطعة منفصلة)',120], ['charge','صيانة منفذ الشحن',180], ['inspect','فحص مبدئي',CONFIG.inspectionFee] ],
       ds4: [ ['clean','تنظيف عميق',130], ['drift','صيانة Analog / حل الانحراف',220], ['buttons','صيانة أزرار',180], ['battery','تغيير بطارية (القطعة منفصلة)',140], ['charge','صيانة منفذ الشحن',200], ['inspect','فحص مبدئي',CONFIG.inspectionFee] ],
-      'mac-intel': [ ['clean','تنظيف داخلي وخارجي',250], ['thermal','تغيير معجون حراري',350], ['fullthermal','تنظيف + معجون حراري',500], ['macos','تثبيت macOS',300], ['oclp','OCLP (Jailbreak): تثبيت وتحسين macOS',1000], ['linux','تثبيت نظام Linux',350], ['storage','تركيب/تهيئة SSD (القطعة منفصلة)',300], ['battery','تغيير بطارية (القطعة منفصلة)',250], ['brick','إصلاح مشاكل الإقلاع/Software Brick',400], ['inspect','فحص مبدئي',CONFIG.inspectionFee] ],
-      'mac-silicon': [ ['clean','تنظيف خارجي وفحص مبدئي',200], ['inspect','فحص مبدئي',CONFIG.inspectionFee] ],
+      'mac-intel': [ ['clean','تنظيف داخلي وخارجي',250], ['thermal','تغيير معجون حراري',350], ['fullthermal','تنظيف + معجون حراري',500], ['macos','تثبيت macOS',300], ['oclp','تثبيت macOS أحدث باستخدام OCLP — بعد تأكيد التوافق',1000], ['linux','تثبيت نظام Linux',350], ['storage','تركيب/تهيئة SSD (القطعة منفصلة)',300], ['battery','تغيير بطارية (القطعة منفصلة)',250], ['brick','إصلاح مشاكل الإقلاع/Software Brick',400], ['inspect','فحص مبدئي',CONFIG.inspectionFee] ],
+      'mac-silicon': [ ['clean','تنظيف خارجي فقط',200], ['inspect','فحص مبدئي',CONFIG.inspectionFee] ],
       'pc-laptop': [ ['clean','تنظيف داخلي وخارجي',250], ['thermal','تغيير معجون حراري',300], ['fullthermal','تنظيف + معجون حراري',500], ['linux','تثبيت نظام Linux',350], ['inspect','فحص مبدئي',CONFIG.inspectionFee] ]
     };
     const LINUX_TIERS = {
@@ -84,19 +84,19 @@
       '(jailbreak) goldhen':'التوافق يعتمد على إصدار نظام PS4. نراجعه معاك قبل تأكيد الخدمة.'
     };
   const serviceDescription = (device,id) => device === 'mac-silicon' && id === 'clean'
-    ? 'تنظيف خارجي وفحص مبدئي فقط. التنظيف الداخلي وأي إصلاح آخر يحتاج تأكيد توفره أولًا.'
+    ? 'تنظيف خارجي فقط. التنظيف الداخلي وأي إصلاح آخر يحتاج تأكيد توفره أولًا.'
     : serviceDescriptions[id] || '';
-  const deviceGuidance = device => device === 'mac-silicon' ? 'متاح لـ Apple Silicon: تنظيف خارجي وفحص مبدئي فقط. أي إصلاح آخر يحتاج تأكيد توفره أولًا.' : '';
+  const deviceGuidance = device => device === 'mac-silicon' ? 'متاح لـ Apple Silicon: تنظيف خارجي أو فحص أعطال مستقل فقط. أي إصلاح آخر يحتاج تأكيد توفره أولًا.' : '';
   const inquirySymptoms = device => {
     if (device === 'other') return ['محتاج أتأكد إن الخدمة متاحة'];
     if (device === 'mac-silicon') return ['تنظيف خارجي أو فحص مبدئي','محتاج أتأكد إن خدمة تانية متاحة'];
     const category = devices.find(d => d[0] === device)?.[2];
     if (category === 'controllers') return ['العصا بتتحرك لوحدها (Drift)','أزرار مش بتستجيب','مشكلة تانية'];
     if (['psp','vita'].includes(device)) return ['أزرار أو Analog','بطارية أو شاشة','مش بيشتغل','مشكلة تانية'];
-    if (category === 'playstation') return ['محتاج تنظيف أو الجهاز بيسخن','درج أو قراءة الأقراص','مش بيشتغل','مشكلة تانية'];
+    if (category === 'playstation') return ['محتاج سوفتوير أو إعداد وتعديل جهاز متوافق','محتاج تنظيف أو الجهاز بيسخن','درج أو قراءة الأقراص','مش بيشتغل','مشكلة تانية'];
     return ['صوت المروحة عالي أو سخونة','مشكلة نظام أو بطء','مش بيشتغل','مشكلة تانية'];
   };
-  const moddingServices = new Set(['hen','cfw','(jailbreak) goldhen','oclp','oclp_full','jailbreak','setup','opl','brick']);
+  const moddingServices = new Set(['hen','cfw','(jailbreak) goldhen','oclp','oclp_full','jailbreak','opl']);
   return { CONFIG, services, devices, serviceDescriptions, serviceDescription, deviceGuidance, inquirySymptoms, moddingServices, LINUX_TIERS, LINUX_DISTROS,
     LINUX_MODES, LINUX_ADDONS, LINUX_ADDON_IDS, LINUX_DUAL_BOOT_FEE };
 });

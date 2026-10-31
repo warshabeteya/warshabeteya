@@ -24,7 +24,7 @@
     }
     node.append(label);
     if (data.price !== undefined) {
-      const price=document.createElement('bdi'); price.className='choice-price'; price.dir='rtl';
+      const price=document.createElement('bdi'); price.className='choice-price'; price.dir=document.documentElement.dir;
       price.textContent=WarshaQuote.formatMoney(Number(data.price)); node.append(price);
     }
   }
@@ -75,7 +75,7 @@
       syncOne(w); button.focus({preventScroll:true});
     }
     button.addEventListener('click',()=>opened===w?close():open());
-    list.addEventListener('pointerdown',event=>event.preventDefault());
+    list.addEventListener('pointerdown',event=>{if(event.pointerType === 'mouse') event.preventDefault();});
     list.addEventListener('click',event=>{const item=event.target.closest('[role=option]'); if(item) choose(Number(item.dataset.index));});
     button.addEventListener('keydown',event=>{
       const key=event.key, isOpen=opened===w;

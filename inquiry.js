@@ -22,7 +22,7 @@ $('inqDevice').addEventListener('change',()=>{
 });
 $('inqSymptom').addEventListener('change',()=>{
  const s=$('inqSymptom').value;
- $('inqGuidance').textContent = D.deviceGuidance($('inqDevice').value) || (/مش بيشتغل|مشكلة تانية|متاحة/.test(s)
+ $('inqGuidance').textContent = D.deviceGuidance($('inqDevice').value) || (['مش بيشتغل','مشكلة تانية','محتاج أتأكد إن الخدمة متاحة','محتاج أتأكد إن خدمة تانية متاحة'].includes(s)
  ? 'هنراجع الأعراض معاك الأول ونأكد إذا كنا نقدر نتعامل مع الحالة. وصف المشكلة لوحده مش كفاية لتأكيد السبب أو إمكانية الإصلاح.'
  : 'محتاجين نعرف الموديل والأعراض عشان نأكد الخدمة المناسبة وتوافر أي قطع مطلوبة.');
 });
@@ -32,10 +32,14 @@ $('inquiryForm').addEventListener('submit',event=>{
  event.preventDefault();
  const invalid=['inqDevice','inqSymptom'].find(id=>!$(id).value);
  if(invalid){$(invalid).setAttribute('aria-invalid','true');$('inqError').textContent=invalid==='inqDevice'?'اختار الجهاز أو «جهاز تاني / مش متأكد».':'اختار المشكلة الأقرب.';$('inqError').hidden=false;$(invalid).focus();return;}
+ if ($('inqSymptom').value === 'مشكلة تانية' && !$('inqNotes').value.trim()) {
+  $('inqNotes').closest('details').open=true; $('inqNotes').setAttribute('aria-invalid','true');
+  $('inqError').textContent='اكتب وصف بسيط للمشكلة عشان نقدر نساعدك.'; $('inqError').hidden=false; $('inqNotes').focus(); return;
+ }
  $('inqError').hidden=true;
  const ref='WB-I-'+Date.now().toString(36).toUpperCase();
  const name=$('inqDevice').selectedOptions[0].textContent;
- const text=['أهلاً ورشة بيتية، عندي استفسار عن صيانة جهاز.','مرجع الاستفسار: '+ref,'الجهاز: '+name,'المشكلة: '+$('inqSymptom').value,'الموديل: '+($('inqModel').value.trim()||'مش متأكد'),'تفاصيل: '+($('inqNotes').value.trim()||'لا يوجد'),'عرفتكم من: '+$('inqSource').value,'حابب أعرف الخطوة المناسبة والتكلفة التقريبية، ومكان الاستلام ومدة التنفيذ قبل الاتفاق.'].join('\n');
+ const text=['أهلاً ورشة بيتية، عندي استفسار عن صيانة جهاز.','مرجع الاستفسار: '+ref,'الجهاز: '+name,'المشكلة: '+$('inqSymptom').value,'الموديل: '+($('inqModel').value.trim()||'مش متأكد'),'تفاصيل: '+($('inqNotes').value.trim()||'لا يوجد'),'عرفتكم من: '+$('inqSource').selectedOptions[0].textContent,'حابب أعرف الخطوة المناسبة والتكلفة التقريبية، ومكان الاستلام ومدة التنفيذ قبل الاتفاق.'].join('\n');
  $('inqMessage').textContent=text;
  $('inqSend').href='https://wa.me/'+D.CONFIG.whatsapp+'?text='+encodeURIComponent(text);
  $('inqResult').hidden=false; $('inqResult').focus();
@@ -47,6 +51,8 @@ $('inqCopy').addEventListener('click',async()=>{
 const demos=(window.WarshaDemonstrations||[]).filter(d=>d.title&&((d.before&&d.after&&d.work&&d.test)||(d.image&&d.caption))&&['own','customer-permission'].includes(d.ownership));
 const el=(tag,text)=>{const n=document.createElement(tag);n.textContent=text;return n;};
 let photoTrigger=null;
+$('photoLarge').addEventListener('load',()=>{$('photoLarge').hidden=false;$('photoStatus').textContent='';});
+$('photoLarge').addEventListener('error',()=>{$('photoStatus').textContent='تعذر تحميل الصورة. جرّب رابط تنزيل الصورة الأصلية.';});
 $('closePhoto').addEventListener('click',()=>$('photoDialog').close());
 $('photoDialog').addEventListener('close',()=>photoTrigger?.focus({preventScroll:true}));
 for(const d of demos){
@@ -55,9 +61,9 @@ for(const d of demos){
  const photos=el('div','');photos.className='demo-photos'+(d.image?' demo-single':'');
  for(const [key,label] of (d.image?[['image','صور من أثناء الشغل']]:[['before',d.beforeLabel||'قبل'],['after',d.afterLabel||'بعد']])){
   const f=el('figure',''),img=document.createElement('img'),button=el('button','');
-  img.src=d[key];img.alt=label+' — '+d.title;img.loading='lazy';
+  img.src=d[key].replace('demos/','demos/thumbs/').replace(/\.jpeg$/,'.webp');img.alt=label+' — '+d.title;img.loading='lazy';img.decoding='async';img.width=640;img.height=640;
   button.type='button';button.className='photo-button';button.setAttribute('aria-label','تكبير: '+img.alt);
-  button.addEventListener('click',()=>{photoTrigger=button;$('photoLarge').src=img.src;$('photoLarge').alt=img.alt;$('photoCaption').textContent=img.alt;$('photoDialog').showModal();});
+  button.addEventListener('click',()=>{photoTrigger=button;$('photoLarge').hidden=true;$('photoStatus').textContent='جاري تحميل الصورة الأصلية كاملة الدقة…';$('photoLarge').src=d[key];$('downloadPhoto').href=d[key];$('photoLarge').alt=img.alt;$('photoCaption').textContent=img.alt;$('photoDialog').showModal();});
   button.append(img);f.append(button,el('figcaption',label));photos.append(f);
  }
  card.append(photos);

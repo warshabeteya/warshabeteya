@@ -1,9 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://warshabeteya.github.io/warshabeteya/</loc>
-    <lastmod>2026-10-24</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>1.0</priority>
-  </url>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url><loc>https://warshabeteya.github.io/warshabeteya/</loc><xhtml:link rel="alternate" hreflang="ar-EG" href="https://warshabeteya.github.io/warshabeteya/"/><xhtml:link rel="alternate" hreflang="en" href="https://warshabeteya.github.io/warshabeteya/en/"/></url>
+  <url><loc>https://warshabeteya.github.io/warshabeteya/en/</loc><xhtml:link rel="alternate" hreflang="ar-EG" href="https://warshabeteya.github.io/warshabeteya/"/><xhtml:link rel="alternate" hreflang="en" href="https://warshabeteya.github.io/warshabeteya/en/"/></url>
 </urlset>

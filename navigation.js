@@ -21,3 +21,11 @@
   }, {rootMargin:'-120px 0px -30% 0px',threshold:0});
   links.forEach(link => {const target = document.getElementById(link.hash.slice(1)); if (target) observer.observe(target);});
 })();
+(() => {
+ const header=document.querySelector('.site-header');
+ const update=()=>document.documentElement.style.setProperty('--header-height',Math.ceil(header.getBoundingClientRect().height)+'px');
+ update(); if('ResizeObserver' in window)new ResizeObserver(update).observe(header);else window.addEventListener('resize',update);
+ document.querySelector('.skip-link').addEventListener('click',()=>document.getElementById('requestForm').focus({preventScroll:true}));
+ // Keep public language links usable without JS; carry the current section only.
+ document.querySelector('.language-switch').addEventListener('click',event=>{const a=event.currentTarget;const url=new URL(a.href);url.hash=['#top','#requestForm','#quickInquiry','#workGallery','#faqHeading','#rateSection'].includes(location.hash)?location.hash:'#requestForm';a.href=url.href;});
+})();

@@ -8,7 +8,7 @@
   function choices(item) {
     const device = D.devices.find(d => d[0] === item?.device);
     if (!device && !D.devices.some(d => d[2] === item?.category)) return null;
-    const clean = {device:device?.[0] || '',category:device?.[2] || item.category,main:'',extras:[],distro:'',mode:'',firmware:''};
+    const clean = {device:device?.[0] || '',category:device?.[2] || item.category,main:'',modification:'',extras:[],distro:'',mode:'',firmware:''};
     clean.main = Q.availableServices(clean.device,[],true).some(s => s[0] === item.main) ? item.main : '';
     for (const id of Array.isArray(item.extras) ? item.extras : []) {
       if (clean.main && clean.main !== 'inspect' && Q.availableServices(clean.device,[clean.main,...clean.extras],false,clean.main === 'linux').some(s => s[0] === id)) clean.extras.push(id);
@@ -17,7 +17,8 @@
       clean.distro = D.LINUX_DISTROS.some(d => d[0] === item.distro) ? item.distro : '';
       clean.mode = clean.distro && Object.hasOwn(D.LINUX_MODES,item.mode) ? item.mode : '';
     }
-    if (Q.needsFirmware(clean) && typeof item.firmware === 'string' && /^(?:\d{1,2}\.\d{2}|لا أعرف|أخرى)$/.test(item.firmware)) clean.firmware = item.firmware;
+    if (Q.needsModificationChoice(clean) && ['standard','modified','unsure'].includes(item.modification)) clean.modification = item.modification;
+    if (Q.needsFirmware(clean) && typeof item.firmware === 'string' && /^(?:\d{1,2}\.\d{2}|unknown|other)$/.test(item.firmware)) clean.firmware = item.firmware;
     return clean;
   }
   function encode(items,applyPromos,now = Date.now()) {

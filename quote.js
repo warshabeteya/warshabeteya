@@ -76,7 +76,7 @@
       id === 'linux' ? [id,label + (distro ? '' : ' (ابتداءً من)'),D.LINUX_TIERS[distro ? distro[2] : 'std'].price] : [id,label,price]);
   }
   function notesRequirement(state) {
-    if (needsFirmware(state) && state.firmware === 'أخرى') return 'اكتب إصدار نظام PS4 في الملاحظات، أو اختار «لا أعرف».';
+    if (needsFirmware(state) && state.firmware === 'other') return 'اكتب إصدار نظام PS4 في الملاحظات، أو اختار «لا أعرف».';
     if (state.main === 'linux' && ['custom','other'].includes(state.distro)) return 'اكتب اسم التوزيعة أو تفاصيل إعداد Linux المطلوب في الملاحظات.';
     return '';
   }
@@ -112,14 +112,30 @@
     }
     discount = Math.round(discount * 100) / 100;
     return {lines,subtotal,discount,total:Math.round((subtotal-discount)*100)/100,offer,warnings,
-      requiresModding:selected.some(id => D.moddingServices.has(id))};
+      requiresModding:selected.some(id => D.moddingServices.has(id)) || (needsModificationChoice(state) && state.modification === 'modified')};
+  }
+  function needsModificationChoice(state) {
+    return [state.main,...(state.extras || [])].some(id => ['setup','brick'].includes(id)) &&
+      ![state.main,...(state.extras || [])].some(id => D.moddingServices.has(id));
   }
   function needsFirmware(state) {
-    return state.device === 'ps4' && [state.main,...(state.extras || [])].some(id => ['(jailbreak) goldhen','setup','brick'].includes(id));
+    return state.device === 'ps4' && ([state.main,...(state.extras || [])].includes('(jailbreak) goldhen') ||
+      (needsModificationChoice(state) && state.modification === 'modified'));
+  }
+  function paymentSchedule(order) {
+    let inspection = 0, service = 0;
+    for (const entry of order.entries) {
+      if (!entry.quote) continue;
+      if (entry.state.main === 'inspect') inspection += entry.quote.total;
+      else service += entry.quote.total;
+    }
+    const intake = Math.round((inspection + service / 2) * 100) / 100;
+    return {inspection, intake, delivery:Math.round((order.total - intake) * 100) / 100};
   }
   function deviceIssue(state) {
     if (!D.devices.some(d => d[0] === state.device)) return {field:'device',text:'اختار نوع الجهاز.'};
     if (!service(state.device,state.main) || D.LINUX_ADDON_IDS.has(state.main)) return {field:'mainService',text:'اختار الخدمة الأساسية.'};
+    if (needsModificationChoice(state) && !['standard','modified','unsure'].includes(state.modification)) return {field:'modificationChoice',text:'اختار إذا كان طلبك يشمل تعديل النظام، أو اختار «مش متأكد».'};
     if (needsFirmware(state) && !state.firmware) return {field:'firmware',text:'اختار إصدار نظام PS4 أو «لا أعرف».'};
     if (state.main === 'linux') {
       if (!D.LINUX_DISTROS.some(d => d[0] === state.distro)) return {field:'linuxDistro',text:'اختار توزيعة Linux.'};
@@ -142,8 +158,7 @@
       });
       // One physical device per entry. Only the second controller receiving
       // repair work qualifies; cleaning or standalone inspection is not repair.
-      const controllerOffer = activePromos(now).find(p => p.type === 'second-controller');
-      if (controllerOffer) {
+      for (const controllerOffer of activePromos(now).filter(p => p.type === 'second-controller')) {
         const eligible = entries.filter(entry => controllerOffer.devices.includes(entry.state.device) && entry.quote &&
           entry.quote.lines.some(line => controllerOffer.services.includes(line.id)));
         if (eligible.length >= 2) {
@@ -171,9 +186,10 @@
     order.entries.forEach(({state,quote,index}) => {
       lines.push('--------------------------------','الجهاز ' + (index+1) + ': ' + D.devices.find(d => d[0] === state.device)[1],
         'رقم الموديل: ' + (state.model?.trim() || 'لا أعرف'));
-      if (needsFirmware(state)) lines.push('إصدار النظام: ' + state.firmware);
+      if (needsFirmware(state)) lines.push('إصدار النظام: ' + ({unknown:'لا أعرف',other:'إصدار آخر'}[state.firmware] || state.firmware));
       quote.lines.forEach(line => lines.push('• ' + line.name,'  السعر: ' + line.price + ' جنيه'));
       if (state.main === 'linux') lines.push('طريقة التثبيت: ' + D.LINUX_MODES[state.mode],'تأكيد النسخة الاحتياطية لهذا الجهاز: نعم');
+      if (needsModificationChoice(state)) lines.push('اختيار تعديل النظام: ' + ({standard:'بدون تعديل',modified:'يشمل تعديل النظام بعد تأكيد التوافق',unsure:'ناقش معي أولًا — لا أوافق على تعديل الآن'}[state.modification]));
       if (state.notes?.trim()) lines.push('ملاحظات الجهاز: ' + state.notes.trim());
       if (state.extraRequest?.trim()) lines.push('طلب للاستفسار: ' + state.extraRequest.trim());
       if (quote.offer) lines.push('العرض: ' + quote.offer.title + ' [' + quote.offer.id + ']','خصم الجهاز: ' + quote.discount + ' جنيه');
@@ -182,36 +198,14 @@
     lines.push('--------------------------------',order.discount ? 'الإجمالي قبل الخصم: ' + order.subtotal + ' جنيه' : '',
       order.discount ? 'إجمالي الخصم: ' + order.discount + ' جنيه' : '','إجمالي الطلب التقريبي: ' + order.total + ' جنيه',
       'الأسعار لا تشمل قطع الغيار أو الشحن أو الجمارك.',
-      'رسوم الفحص: ' + D.CONFIG.inspectionFee + ' جنيه لكل جهاز، محسوبة ضمن خدمته عند التنفيذ.',
+      'التنظيف بدون رسوم فحص. فحص الأعطال المستقل يُدفع كاملًا عند الاستلام ويُحتسب ضمن إصلاح نفس العطل عند الاتفاق.',
+      'المطلوب عند الاستلام: ' + formatMoney(paymentSchedule(order).intake),
+      'الباقي عند التسليم: ' + formatMoney(paymentSchedule(order).delivery),
       order.offer ? 'عرض واحد للطلب، مع تأكيد الاستحقاق والعربون قبل انتهاء العرض على واتساب.' : '',
       order.requiresModding ? 'تمت الموافقة الصريحة على شروط التعديل لكل الأجهزة المختارة التي تتطلبه.' : '',
       'أوافق على بنود الخدمة وسياسة الدفع والاسترداد.','ورشة من المنزل في القاهرة. الاستلام والتسليم بالاتفاق.',
       'سأرسل صور كل جهاز وموديله إن أمكن.');
     return displayText(lines.filter(Boolean).join('\n'));
   }
-  function message(state, customer, quote, reference) {
-    if (!quote) throw new Error('A quote is required');
-    const device = D.devices.find(d => d[0] === state.device);
-    return displayText([
-      'طلب صيانة - ' + D.CONFIG.name, 'مرجع الطلب: ' + reference, '--------------------------------',
-      'الاسم: ' + customer.name.trim(), 'واتساب: ' + normalizePhone(customer.phone),
-      'الجهاز: ' + device[1], 'رقم الموديل: ' + (customer.model.trim() || 'لا أعرف'),
-      needsFirmware(state) ? 'إصدار نظام PS4: ' + customer.firmware : '',
-      ...quote.lines.map(line => line.name + ': ' + line.price + ' جنيه'),
-      state.main === 'linux' ? 'طريقة التثبيت: ' + D.LINUX_MODES[state.mode] : '',
-      state.main === 'linux' ? 'تأكيد النسخة الاحتياطية: نعم' : '',
-      customer.extraRequest.trim() ? 'طلب للاستفسار: ' + customer.extraRequest.trim() : '',
-      customer.notes.trim() ? 'ملاحظات: ' + customer.notes.trim() : '',
-      quote.offer ? 'العرض: ' + quote.offer.title + ' [' + quote.offer.id + ']' : '',
-      quote.discount ? 'قبل الخصم: ' + quote.subtotal + ' جنيه / الخصم: ' + quote.discount + ' جنيه' : '',
-      'الإجمالي التقريبي: ' + quote.total + ' جنيه (لا يشمل قطع الغيار أو الشحن أو الجمارك)',
-      ...quote.warnings, 'رسوم الفحص: ' + D.CONFIG.inspectionFee + ' جنيه، محسوبة ضمن سعر الخدمة عند التنفيذ.',
-      quote.requiresModding ? 'تمت الموافقة الصريحة على شروط خدمات التعديل.' : '',
-      quote.offer ? 'عرض واحد لكل جهاز ورقم موبايل، وتأكيد الأهلية والعربون قبل انتهاء العرض على واتساب.' : '',
-      'أوافق على بنود الخدمة وسياسة الدفع والاسترداد.',
-      'ورشة من المنزل في القاهرة. الاستلام والتسليم بالاتفاق.',
-      'سأرسل صور الجهاز والموديل إن أمكن.'
-    ].filter(Boolean).join('\n'));
-  }
-  return {hasCampaigns:() => promos.some(p => p.active),mainServiceOptions,notesRequirement,bidiText,optionLabel,needsFirmware,deviceIssue,calculateOrder,orderMessage,toWesternDigits,displayText,formatMoney,formatOfferDate,cairoDate,activePromos,normalizePhone,validPhone,service,components,conflict,availableServices,calculate,message};
+  return {hasCampaigns:() => promos.some(p => p.active),mainServiceOptions,notesRequirement,bidiText,optionLabel,needsFirmware,deviceIssue,calculateOrder,orderMessage,toWesternDigits,displayText,formatMoney,formatOfferDate,cairoDate,activePromos,normalizePhone,validPhone,service,components,conflict,availableServices,calculate,needsModificationChoice,paymentSchedule};
 });

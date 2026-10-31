@@ -1,33 +1,27 @@
-/* Edit campaigns here. active:false disables one offer.
- * Dates are inclusive in Africa/Cairo. One offer per request; no stacking.
- * Enquiry-only offers stay outside the automatic quote calculation. */
-(function(root, factory) {
-  const promos = factory();
-  if (typeof module === 'object' && module.exports) module.exports = promos;
-  else root.WarshaPromos = promos;
-})(typeof globalThis !== 'undefined' ? globalThis : this, function() {
-  'use strict';
-  const dates = { active: true, startDate: '2026-09-15', endDate: '2026-10-12' };
-  return [
-    { ...dates, id:'macbook-full', title:'كومبو الماك بوك — تنظيف كامل',
-      description:'OCLP + تنظيف وتغيير معجون حراري', device:'mac-intel',
-      services:['oclp','fullthermal'], price:1300, type:'bundle' },
-    { ...dates, id:'macbook-clean', title:'كومبو الماك بوك — تنظيف',
-      description:'OCLP + تنظيف داخلي وخارجي', device:'mac-intel',
-      services:['oclp','clean'], price:1150, type:'bundle' },
-    { ...dates, id:'playstation-back-to-school', title:'كومبو تعديل البلايستيشن',
-      description:'PS4: إعداد GoldHEN + تنظيف ومعجون وبادات، بعد تأكيد التوافق.', device:'ps4',
-      services:['(jailbreak) goldhen','fullthermal'], price:990, type:'bundle',
-      note:'الكومبو متاح لـ PS3 بسعر يتأكد على واتساب. التعديل للاستخدام الشخصي مع الألعاب التي تملكها قانونيًا.' },
-    { ...dates, id:'starter-clean-inspect', title:'عرض البداية',
-      description:'خصم على التنظيف والفحص المبدئي، والفحص محسوب ضمن الخدمة.',
-      services:['clean'], percentOff:25, type:'percent',
-      note:'الخصم على بند التنظيف فقط. الفحص داخل سعر الخدمة، من غير رسوم فحص إضافية.' },
-    { ...dates, id:'second-controller', title:'خصم اليد الثانية',
-      description:'خصم 20% على إصلاح اليد الثانية في نفس الطلب (DualShock 2 / 3 / 4).',
-      type:'second-controller', percentOff:20, devices:['ds2','ds3','ds4'],
-      services:['drift','buttons','battery','charge'],
-      note:'أضف كل يد كجهاز مستقل. الخصم على شغل إصلاح اليد الثانية، وأفضل عرض واحد يُطبق على الطلب.',
-      whatsappText:'مرحبًا، عندي أكتر من يد تحكم وعايز أستفيد من خصم اليد الثانية.' }
-  ];
+/* Optional campaign adapter. Missing/disabled/invalid campaigns cannot break booking. */
+(function(root,factory){
+ if(typeof module==='object'&&module.exports)module.exports=factory;
+ else root.WarshaPromos=factory(root.WarshaCampaigns,root.WarshaConfig,root.WarshaData,document.documentElement.lang);
+})(globalThis,function(campaigns,config,D,locale){
+ 'use strict';
+ if(!config?.promotionsEnabled||!Array.isArray(campaigns))return [];
+ const language=locale==='en'?'en':'ar', ids=new Set();
+ const text=v=>typeof v==='string'?v:(v?.[language]||v?.ar||'');
+ const dateOK=v=>!v || (typeof v==='string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && Number.isFinite(Date.parse(v+'T12:00:00Z')) && new Date(v+'T12:00:00Z').toISOString().slice(0,10)===v);
+ return campaigns.flatMap(p=>{
+  if(!p||p.active!==true||typeof p.id!=='string'||!p.id||ids.has(p.id)||!dateOK(p.startDate)||!dateOK(p.endDate)|| (p.startDate&&p.endDate&&p.startDate>p.endDate)) return [];
+  if(!['percent','bundle','second-controller'].includes(p.type)||!Array.isArray(p.services)||!p.services.length||new Set(p.services).size!==p.services.length)return [];
+  // Diagnosis retains its clear, fixed price; offers apply to service labour.
+  if(p.services.includes('inspect'))return [];
+  if(p.device&&!D.devices.some(d=>d[0]===p.device))return [];
+  const targets=p.type==='second-controller'?p.devices:p.device?[p.device]:D.devices.map(d=>d[0]);
+  if(!Array.isArray(targets)||!targets.length||targets.some(id=>!D.services[id]))return [];
+  if(p.type==='second-controller'&&targets.some(id=>!['ds2','ds3','ds4'].includes(id)))return [];
+  if(!targets.some(id=>p.services.every(s=>D.services[id].some(row=>row[0]===s))))return [];
+  if(p.type==='bundle'&&(!p.device||!Number.isFinite(p.price)||p.price<0||p.services.some(id=>D.LINUX_ADDON_IDS.has(id)||id==='linux')))return [];
+  if(p.type==='bundle'&&p.services.some((id,i)=>p.services.slice(i+1).some(other=>id==='fullthermal'&&['clean','thermal','pads'].includes(other)||other==='fullthermal'&&['clean','thermal','pads'].includes(id))))return [];
+  if(p.type!=='bundle'&&(!Number.isFinite(p.percentOff)||p.percentOff<=0||p.percentOff>100))return [];
+  if(!text(p.title)||!text(p.description))return [];
+  ids.add(p.id);return [{...p,title:text(p.title),description:text(p.description),note:text(p.note)}];
+ });
 });

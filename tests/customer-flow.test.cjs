@@ -1,11 +1,11 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const D = require('../data.js');
-const Q = require('../quote.js');
+const Q = require('../quote.js').withPromos(require('./fixtures/historical-promos.cjs'));
 const Draft = require('../draft.js');
 const duringOffer = new Date('2026-10-12T10:00:00Z');
 const afterOffer = new Date('2026-10-14T10:00:00Z');
-const device = (id,main,extras=[]) => ({device:id,main,extras,firmware:'',distro:'',mode:'',backup:false});
+const device = (id,main,extras=[]) => ({device:id,main,extras,firmware:'',distro:'',mode:'',backup:false,modification:'modified'});
 
 test('PS4 physical maintenance and inspection do not need firmware',()=>{
  for (const main of ['clean','thermal','pads','fullthermal','disc','storage','inspect']) {
@@ -18,7 +18,7 @@ test('PS4 software compatibility checks apply to main and extra services',()=>{
  for (const main of ['(jailbreak) goldhen','setup','brick']) {
   for(const item of [device('ps4',main),device('ps4','clean',[main])]) {
    assert.equal(Q.deviceIssue(item).field,'firmware');
-   item.firmware='لا أعرف'; assert.equal(Q.deviceIssue(item),null);
+   item.firmware='unknown'; assert.equal(Q.deviceIssue(item),null);
   }
  }
  assert.equal(Q.needsFirmware(device('ps3','hen')),false);

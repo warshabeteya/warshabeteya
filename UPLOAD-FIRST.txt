@@ -1,0 +1,14 @@
+WARSHABETEYA — MERGED WEBSITE, 31 OCTOBER 2026
+
+1. Extract the archive and open the warshabeteya folder.
+2. Upload the CONTENTS of this folder to the ROOT of your existing GitHub repository.
+3. Replace matching files. Include en/ and demos/thumbs/.
+4. Do not put this folder inside another warshabeteya folder.
+5. Back up and remove the obsolete nested site copy if it exists in the repository.
+6. Commit, allow GitHub Pages to deploy, then refresh the site.
+7. Check the Arabic homepage, English switch, service estimate and gallery photos.
+
+No build or npm install is required for upload. The prepared pages are included.
+The outer v2.0 stylesheets and original Cairo font loading are preserved.
+Promotions are disabled by default. Optional server validation requires separate hosting.
+No changes have been published to the live site.

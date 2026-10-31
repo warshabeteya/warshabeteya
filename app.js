@@ -4,8 +4,9 @@
   const D = window.WarshaData, Q = window.WarshaQuote;
   const $ = id => document.getElementById(id);
   const form = $('requestForm'), money = Q.formatMoney;
+  let requestVersion = 0;
   let nextUid = 1, extraSequence = 0, lastMessage = '', lastSignature = '', lastReference = '', campaignDate = '', lastModdingSignature = '';
-  const blank = () => ({uid:nextUid++,device:'',main:'',extras:[],distro:'',mode:'',backup:false,model:'',firmware:'',notes:'',extraRequest:'',category:''});
+  const blank = () => ({uid:nextUid++,device:'',main:'',modification:'',extras:[],distro:'',mode:'',backup:false,model:'',firmware:'',notes:'',extraRequest:'',category:''});
   const items = [blank()];
   let state = items[0], journeyStep = 1, removedDevice = null, pendingDraft = null, storageAvailable = true;
   const Draft = window.WarshaDraft;
@@ -53,8 +54,8 @@
     const issue = Q.deviceIssue(state);
     $('formError').textContent = 'الجهاز ' + (items.indexOf(state)+1) + ': ' + issue.text;
     show('formError',true);
-    const field = issue.field === 'linuxModeBox' ? document.querySelector('[name="linuxMode"]') : $(issue.field);
-    field.setAttribute('aria-invalid','true'); field.setAttribute('aria-describedby','formError'); scrollToNode(focusControl(field)); return false;
+    const field = issue.field === 'modificationChoice' ? document.querySelector('[name=modification]') : issue.field === 'linuxModeBox' ? document.querySelector('[name="linuxMode"]') : $(issue.field);
+    field.setAttribute('aria-invalid','true'); field.setAttribute('aria-describedby',[...new Set((field.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean).concat('formError'))].join(' ')); scrollToNode(focusControl(field)); return false;
   }
   function reviewOrder(event) { event?.preventDefault(); if (validateDevices()) goStep(3); }
   function showUndo(item,index) {
@@ -83,6 +84,7 @@
     if (typeof window.gtag === 'function') window.gtag('event',name,params);
   }
   function initAnalytics() {
+    if (!window.WarshaConfig.analyticsEnabled) return;
     // Keep local previews out of the live property's reports.
     if (!/^https?:$/.test(location.protocol) || ['localhost','127.0.0.1','::1','[::1]'].includes(location.hostname)) return;
     window.dataLayer = window.dataLayer || [];
@@ -98,7 +100,7 @@
   function wa(text = '') { return 'https://wa.me/' + D.CONFIG.whatsapp + (text ? '?text=' + encodeURIComponent(Q.displayText(text)) : ''); }
   function scrollToNode(node) { node.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',block:'start'}); }
   function setOptions(select,rows,placeholder,current = '') {
-    select.dir = 'rtl';
+    select.dir = document.documentElement.dir;
     select.replaceChildren(new Option(placeholder,''));
     rows.forEach(([id,label,price]) => { const option=new Option(Q.optionLabel(label,price),id); option.dataset.label=label; if(typeof price==='number') option.dataset.price=price; select.add(option); });
     if (rows.some(row => row[0] === current)) select.value = current;
@@ -109,12 +111,15 @@
     state.distro = $('linuxDistro').value;
     state.mode = document.querySelector('[name="linuxMode"]:checked')?.value || '';
     state.backup = $('linuxBackup').checked;
+    state.modification = document.querySelector('[name=modification]:checked')?.value || '';
     ['model','firmware','notes','extraRequest'].forEach(key => state[key] = $(key).value);
   }
   function invalidatePrepared() {
+    requestVersion++; $('validationStatus').textContent = '';
     show('successBox',false); lastMessage = ''; $('messagePreview').textContent = ''; $('whatsappFallback').href = '#';
   }
   function newItem(focus = true) {
+    if (items.length >= 10) { $('formError').textContent = 'الحد الأقصى 10 أجهزة في الطلب. للطلبات الأكبر، تواصل معانا على واتساب.'; show('formError',true); $('formError').focus(); return false; }
     state = blank(); items.push(state); journeyStep = 1;
     if (focus) { renderEditor(); invalidatePrepared(); scrollToNode(document.querySelector('.category-prompt')); focusDevice(); }
   }
@@ -192,6 +197,7 @@
     setOptions($('mainService'),Q.mainServiceOptions(state),'-- اختر الخدمة الأساسية --',state.main);
     ['model','firmware','notes','extraRequest'].forEach(key => $(key).value = state[key]);
     $('linuxDistro').value = state.distro;
+    document.querySelectorAll('[name=modification]').forEach(r => r.checked = r.value === state.modification);
     document.querySelectorAll('[name="linuxMode"]').forEach(r => r.checked = r.value === state.mode);
     $('linuxBackup').checked = state.backup;
     $('additionalServices').replaceChildren(); state.extras.forEach(id => mountExtra(id));
@@ -220,6 +226,10 @@
     state.extras = [...document.querySelectorAll('.additional-service')].map(s => s.value).filter(Boolean);
     $('addServiceButton').disabled = !state.main || !Q.availableServices(state.device,[state.main,...state.extras],false,state.main === 'linux').length;
     show('extraBox',Boolean(state.main) && state.main !== 'inspect'); show('extraRequestBox',Boolean(state.device));
+    const choiceNeeded = Q.needsModificationChoice(state);
+    $('modificationChoice').hidden = !choiceNeeded;
+    if (!choiceNeeded) state.modification = '';
+    document.querySelectorAll('[name=modification]').forEach(r => { r.required = choiceNeeded; r.disabled = !choiceNeeded; r.checked = r.value === state.modification; });
     const firmwareNeeded = Q.needsFirmware(state);
     show('ps4FirmwareBox',firmwareNeeded); $('firmware').required = firmwareNeeded; $('firmware').disabled = !firmwareNeeded;
     if (!firmwareNeeded) { state.firmware = ''; $('firmware').value = ''; }
@@ -257,7 +267,7 @@
     const order = Q.calculateOrder(items,$('applyPromos').checked);
     renderDeviceList(order);
     const scope = moddingScope(order.entries);
-    const moddingSignature = JSON.stringify(order.entries.filter(e => e.quote?.requiresModding).map(({state:item}) => [item.uid,item.device,[item.main,...item.extras].filter(id => D.moddingServices.has(id)).sort()]));
+    const moddingSignature = JSON.stringify(order.entries.filter(e => e.quote?.requiresModding).map(({state:item}) => [item.uid,item.device,item.modification,[item.main,...item.extras].filter(id => D.moddingServices.has(id)).sort()]));
     if (moddingSignature !== lastModdingSignature) $('moddingOptIn').checked = false;
     lastModdingSignature = moddingSignature;
     $('playstationModdingWarning').hidden = !scope.playstation;
@@ -310,16 +320,17 @@
     const payment = $('paymentEstimate'); payment.replaceChildren(); payment.hidden = !hasQuote || order.pending > 0;
     if (!payment.hidden) {
       payment.append(element('h3','توزيع مبدئي للدفع'));
-      const half = Math.round(order.total * 50) / 100, rest = Math.round((order.total-half)*100)/100;
-      [['50% عند الاستلام',half],['الباقي عند التسليم',rest]].forEach(([label,value]) => {
+      const schedule = Q.paymentSchedule(order);
+      [['عند الاستلام',schedule.intake],['الباقي عند التسليم',schedule.delivery]].forEach(([label,value]) => {
         const row = element('div',undefined,'quote-line'); row.append(element('span',label),element('bdi',money(value))); payment.append(row);
       });
-      payment.append(element('p','حسب السعر التقريبي الحالي. نأكد المبلغ معاك قبل التسليم للورشة. القطع المستوردة تُدفع منفصلة ومقدمًا؛ الفحص مش رسوم إضافية فوق الخدمة المنفذة.'));
-      if (order.entries.some(e => e.state.main === 'inspect')) payment.append(element('p','الفحص المختار خدمة مستقلة. لو اتفقنا على إصلاح لنفس الجهاز، رسوم الفحص بتتحسب من سعره.'));
+      payment.append(element('p','الخدمات: 50% عند الاستلام. فحص الأعطال المستقل: كامل المبلغ عند الاستلام. التنظيف بدون رسوم فحص. القطع المستوردة منفصلة ومقدمًا.'));
+      if (order.entries.some(e => e.state.main === 'inspect')) payment.append(element('p','رسوم الفحص المستقل تُحتسب ضمن إصلاح نفس العطل لو اتفقنا عليه، بدون إضافتها مرتين.'));
     }
     window.WarshaPicker.sync();
     renderJourney(); persistDraft();
-    $('quoteAnnouncement').textContent = hasQuote ? 'إجمالي ' + items.length + ' جهاز: ' + money(order.total) + (order.pending ? '، أكمل الأجهزة الناقصة.' : '') : '';
+    const announcement = hasQuote ? 'إجمالي ' + items.length + ' جهاز: ' + money(order.total) + (order.pending ? '، أكمل الأجهزة الناقصة.' : '') : '';
+    if ($('quoteAnnouncement').textContent !== announcement) $('quoteAnnouncement').textContent = announcement;
   }
   const formatDate = Q.formatOfferDate;
   function renderPromos() {
@@ -339,7 +350,8 @@
         const was = p.services.reduce((sum,id) => sum + Q.service(p.device,id).price,0);
         price.append(element('s',money(was)),element('strong',money(p.price)));
       } else price.append(element('strong','خصم ' + p.percentOff + '%'));
-      card.append(price,element('p','لحد ' + formatDate(p.endDate) + ' ' + p.endDate.slice(0,4) + ' بتوقيت القاهرة','hint'));
+      card.append(price);
+      if (p.endDate) card.append(element('p','لحد ' + formatDate(p.endDate) + ' ' + p.endDate.slice(0,4) + ' بتوقيت القاهرة','hint'));
       if (p.type === 'bundle') card.append(element('p','الباقة تشمل: ' + p.services.map(id => Q.service(p.device,id).name).join(' + ') + '. لو بدأت جهاز بالفعل، هنضيف جهاز مستقل للطلب.','hint'));
       if (p.note) card.append(element('p',p.note,'hint'));
       const button = element('button',p.type === 'bundle' ? 'أضف ' + D.devices.find(d => d[0] === p.device)[1] + ' بالباقة' : p.type === 'second-controller' ? 'أضف أيدي التحكم' : 'اختار جهازك واستفيد','button button-outline');
@@ -349,10 +361,10 @@
         saveCurrent(); pendingDraft = null; $('draftResume').hidden = true;
         if (p.type === 'bundle') {
           // A promotion adds a device instead of overwriting another device's work.
-          if (state.device || state.main || state.notes || state.model || state.extraRequest) newItem(false);
+          if ((state.device || state.main || state.notes || state.model || state.extraRequest) && newItem(false) === false) return;
           Object.assign(state,{device:p.device,main:p.services[0],extras:p.services.slice(1),category:D.devices.find(d => d[0] === p.device)[2]});
         } else if (p.type === 'second-controller') {
-          if (state.device || state.main || state.notes || state.model || state.extraRequest) newItem(false);
+          if ((state.device || state.main || state.notes || state.model || state.extraRequest) && newItem(false) === false) return;
           state.category = 'controllers';
         }
         $('applyPromos').checked = true;
@@ -411,22 +423,26 @@
   $('addServiceButton').addEventListener('click',() => { const select = mountExtra(); refresh(); focusControl(select); });
   $('linuxDistro').addEventListener('change',() => { saveCurrent(); state.backup = false; refresh(); invalidatePrepared(); });
   $('linuxModeBox').addEventListener('change',() => { saveCurrent(); state.backup = false; refresh(); invalidatePrepared(); });
-  $('firmware').addEventListener('change',refreshNotes);
+  $('firmware').addEventListener('change',() => { saveCurrent(); refreshNotes(); });
+  $('modificationChoice').addEventListener('change',() => {saveCurrent(); refresh(); invalidatePrepared();});
   $('linuxBackup').addEventListener('change',() => { saveCurrent(); renderQuote(); invalidatePrepared(); });
   $('applyPromos').addEventListener('change',() => { renderQuote(); invalidatePrepared(); });
   form.addEventListener('input',event => {
     if (event.target.setCustomValidity) event.target.setCustomValidity('');
     if (event.target.id === 'name') show('nameError',false);
-    event.target.removeAttribute('aria-invalid'); show('formError',false);
+    event.target.removeAttribute('aria-invalid');
+    if (event.target.type === 'radio') document.querySelectorAll('input[type=radio]').forEach(r => {if(r.name === event.target.name) r.removeAttribute('aria-invalid');});
+    show('formError',false);
     if (event.target.id === 'phone') show('phoneError',false);
-    saveCurrent(); renderQuote(); invalidatePrepared();
+    saveCurrent();
+    if (!['name','phone','notes','model','extraRequest','agree','moddingOptIn'].includes(event.target.id)) renderQuote();
+    invalidatePrepared();
   });
   $('moddingOptIn').addEventListener('change',() => {
     show('moddingError',$('moddingOptIn').required && !$('moddingOptIn').checked);
   });
   form.addEventListener('change',invalidatePrepared);
   document.querySelectorAll('input[type="text"],input[type="tel"],textarea').forEach(field => field.addEventListener('blur',() => {
-    field.value = Q.displayText(field.value);
     if (field.id === 'phone') field.value = Q.normalizePhone(field.value);
     saveCurrent();
   }));
@@ -458,7 +474,7 @@
     const label = invalid.labels?.[0]?.textContent.replace(/\s+/g,' ').trim() || 'البيانات المطلوبة';
     $('formError').textContent = 'راجع الحقل: ' + label; show('formError',true); scrollToNode(focusControl(invalid)); return false;
   }
-  form.addEventListener('submit',event => {
+  form.addEventListener('submit',async event => {
     event.preventDefault();
     if (journeyStep < 3) { if (journeyStep === 1 && state.device) goStep(2); else if (journeyStep === 2) reviewOrder(); return; } saveCurrent(); refresh(); if (!validate()) return;
     const order = Q.calculateOrder(items,$('applyPromos').checked);
@@ -470,9 +486,33 @@
       const suffix = [...random].map(n => alphabet[n & 31]).join('');
       lastReference = 'WB-' + Q.cairoDate().replace(/-/g,'') + '-' + suffix; lastSignature = signature;
     }
+    const payload = {items:items.map(({uid,category,...item}) => ({...item,extras:[...item.extras]})),customer,applyPromos:$('applyPromos').checked,agree:$('agree').checked,moddingConsent:$('moddingOptIn').checked,locale:document.documentElement.lang};
+    const checked = window.WarshaValidation.validate(payload,Q,D);
+    if (!checked.ok) { $('formError').textContent = checked.error; show('formError',true); $('formError').focus(); return; }
     lastMessage = Q.orderMessage(items,customer,order,lastReference);
+    const endpoint = window.WarshaConfig.validationEndpoint;
+    if (endpoint) {
+      const version = requestVersion;
+      $('sendButton').disabled = true; $('validationStatus').textContent = 'بنتحقق من التفاصيل والسعر…';
+      try {
+        const response = await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:AbortSignal.timeout(12000)});
+        const result = await response.json();
+        if (version !== requestVersion) return;
+        if (!response.ok || !result.ok || typeof result.message !== 'string' || typeof result.reference !== 'string') throw new Error('validation');
+        if (result.total !== order.total) { $('validationStatus').textContent = 'الأسعار أو العروض اتحدثت. حدّث الصفحة وراجع السعر قبل الإرسال.'; return; }
+        lastReference = result.reference; lastMessage = result.message;
+        $('validationStatus').textContent = 'تم التحقق من تفاصيل الطلب والسعر. الحجز يتأكد على واتساب.';
+      } catch (_) {
+        if (version !== requestVersion) return;
+        $('validationStatus').textContent = 'خدمة التحقق غير متاحة حاليًا. جرّب تاني، أو تواصل مباشرة على واتساب. لم يتم إرسال الطلب.';
+        return;
+      } finally { $('sendButton').disabled = false; }
+    } else $('validationStatus').textContent = 'تقدير من حاسبة الموقع. السعر والميعاد يتأكدوا معاك على واتساب.';
+
     $('orderRef').textContent = lastReference; $('messagePreview').textContent = lastMessage;
-    $('whatsappFallback').href = wa(lastMessage); $('copyStatus').textContent = ''; show('successBox',true);
+    const longMessage = encodeURIComponent(lastMessage).length > 12000;
+    $('longMessageHint').hidden = !longMessage;
+    $('whatsappFallback').href = wa(longMessage ? '' : lastMessage); $('copyStatus').textContent = ''; show('successBox',true);
     $('successBox').focus({preventScroll:true}); scrollToNode($('successBox'));
     track('request_prepared',{device_count:items.length,promo:order.offer?.id || 'none'});
   });
@@ -500,8 +540,8 @@
     button.addEventListener('click',() => chooseRating(index + 1));
     button.addEventListener('keydown',event => {
       let next;
-      if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') next = (index + 1) % 5;
-      if (event.key === 'ArrowRight' || event.key === 'ArrowUp') next = (index + 4) % 5;
+      if (event.key === (document.documentElement.dir === 'rtl' ? 'ArrowLeft' : 'ArrowRight') || event.key === 'ArrowDown') next = (index + 1) % 5;
+      if (event.key === (document.documentElement.dir === 'rtl' ? 'ArrowRight' : 'ArrowLeft') || event.key === 'ArrowUp') next = (index + 4) % 5;
       if (event.key === 'Home') next = 0;
       if (event.key === 'End') next = 4;
       if (next !== undefined) { event.preventDefault(); chooseRating(next + 1,true); }
